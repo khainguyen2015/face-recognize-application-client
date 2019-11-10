@@ -78,8 +78,8 @@ public class MenuFormAdmin extends javax.swing.JFrame {
     private List<FDA_Lichsudiemdanh> studentList;
     private DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
     private List<FDA_Sinhvien> newStudentList;
-//    private BufferedReader reader;
-//    private BufferedWriter writer;
+    private BufferedReader reader;
+    private BufferedWriter writer;
 //    
     
     
@@ -101,8 +101,6 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         } 
         initComponents();
         jButton8.setEnabled(false);
-        
-        
     }
     
     private Socket connectToServer(String host, int port) throws IOException {
@@ -114,14 +112,22 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         return sock;
     }
     
+    private void openStreamFromServer() throws IOException {
+        InputStreamReader streamReader = new InputStreamReader(socket.getInputStream());
+        reader = new BufferedReader(streamReader);
+        OutputStreamWriter streamWriter = new OutputStreamWriter(socket.getOutputStream());
+        writer = new BufferedWriter(streamWriter);
+    }
+    
     private void prepareBeforeExecution() throws IOException, ConnectException, SQLException{
         socket = connectToServer("localhost", 5555);
 //        socket = connectToServer("192.168.0.2", 5555);
+        openStreamFromServer();
         serverResponseHandler = new ServerResponseHandler(socket);
         stopVideoStream = false;
         frameList = new ArrayList<>(DEFAULT_AMOUNT_OF_FRAME_STORED);
         sinhVienRepository = new Control();
-        newStudentList = new ArrayList<>();
+        newStudentList = new ArrayList<>(1);
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (ClassNotFoundException ex) {
@@ -215,11 +221,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         jLabel27 = new javax.swing.JLabel();
         jLabel28 = new javax.swing.JLabel();
         jButton5 = new javax.swing.JButton();
-        jButton6 = new javax.swing.JButton();
-        jLabel29 = new javax.swing.JLabel();
-        jLabel30 = new javax.swing.JLabel();
         jButton9 = new javax.swing.JButton();
-        jButton10 = new javax.swing.JButton();
         jButton4 = new javax.swing.JButton();
         jPanel17 = new javax.swing.JPanel();
         jPanel14 = new DrawImage();
@@ -714,28 +716,10 @@ public class MenuFormAdmin extends javax.swing.JFrame {
             }
         });
 
-        jButton6.setText("XÓA THÔNG TIN");
-        jButton6.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton6ActionPerformed(evt);
-            }
-        });
-
-        jLabel29.setText("Số sinh viên đang lưu tạm:");
-
-        jLabel30.setText("0");
-
         jButton9.setText("XÓA TẤT CẢ");
         jButton9.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jButton9ActionPerformed(evt);
-            }
-        });
-
-        jButton10.setText("THÊM THÔNG TIN");
-        jButton10.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton10ActionPerformed(evt);
             }
         });
 
@@ -769,15 +753,6 @@ public class MenuFormAdmin extends javax.swing.JFrame {
                             .addGroup(jPanel13Layout.createSequentialGroup()
                                 .addComponent(jLabel27)
                                 .addGap(0, 0, Short.MAX_VALUE))))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel13Layout.createSequentialGroup()
-                        .addComponent(jButton10)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(jButton6))
-                    .addGroup(jPanel13Layout.createSequentialGroup()
-                        .addComponent(jLabel29)
-                        .addGap(18, 18, 18)
-                        .addComponent(jLabel30)
-                        .addGap(0, 0, Short.MAX_VALUE))
                     .addGroup(jPanel13Layout.createSequentialGroup()
                         .addComponent(jButton5, javax.swing.GroupLayout.PREFERRED_SIZE, 133, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
@@ -819,15 +794,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
                 .addGroup(jPanel13Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel27)
                     .addComponent(jLabel28))
-                .addGap(21, 21, 21)
-                .addGroup(jPanel13Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jButton6, javax.swing.GroupLayout.PREFERRED_SIZE, 40, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jButton10, javax.swing.GroupLayout.PREFERRED_SIZE, 40, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(59, 59, 59)
-                .addGroup(jPanel13Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel29)
-                    .addComponent(jLabel30))
-                .addGap(18, 18, 18)
+                .addGap(154, 154, 154)
                 .addGroup(jPanel13Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jButton5, javax.swing.GroupLayout.PREFERRED_SIZE, 40, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jButton9, javax.swing.GroupLayout.PREFERRED_SIZE, 40, javax.swing.GroupLayout.PREFERRED_SIZE)))
@@ -1053,9 +1020,6 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         t.start();
     }//GEN-LAST:event_jButton4ActionPerformed
 
-    private void jButton6ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton6ActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_jButton6ActionPerformed
     private void jButton7ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton7ActionPerformed
         // TODO add your handling code here:
         jButton7.setEnabled(false);
@@ -1069,6 +1033,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
             serverResponseHanlderThread = new Thread(serverResponseHandler);
             serverResponseHanlderThread.start();
         }
+        System.out.println(serverResponseHanlderThread.isInterrupted());
     }//GEN-LAST:event_jButton7ActionPerformed
 
     private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
@@ -1087,6 +1052,8 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         stopVideoStream = true;
         stopRecognize = true;
         try {
+//            serverResponseHanlderThread.interrupt();
+//            serverResponseHanlderThread = null;
 //            thread.interrupt();
         } catch(Exception ex) {
             ex.printStackTrace();
@@ -1139,17 +1106,14 @@ public class MenuFormAdmin extends javax.swing.JFrame {
 //                JOptionPane.showMessageDialog(rootPane, "Thêm sinh viên thất bại. Mã số sinh viên đã tồn tại !!!");
 //            }
 //        }
-        BufferedReader reader;
-        BufferedWriter writer;
+        newStudentList.add(getNewStudentInfo());
         try {
-            InputStreamReader streamReader = new InputStreamReader(socket.getInputStream());
-            reader = new BufferedReader(streamReader);
-            OutputStreamWriter streamWriter = new OutputStreamWriter(socket.getOutputStream());
-            writer = new BufferedWriter(streamWriter);
             sendImageToServerToTrain(reader, writer);
         } catch(Exception ex) {
             ex.printStackTrace();
         }
+        newStudentList.clear();
+        clearNewStudentInfoFill();
     }//GEN-LAST:event_jButton5ActionPerformed
 
     private void jTabbedPane3StateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_jTabbedPane3StateChanged
@@ -1173,15 +1137,10 @@ public class MenuFormAdmin extends javax.swing.JFrame {
 
     private void jButton9ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton9ActionPerformed
         // TODO add your handling code here:
-    }//GEN-LAST:event_jButton9ActionPerformed
-
-    private void jButton10ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton10ActionPerformed
-        // TODO add your handling code here:
-        newStudentList.add(getNewStudentInfo());
-        jLabel30.setText(String.valueOf(newStudentList.size()));
+        newStudentList.clear();
         clearNewStudentInfoFill();
         
-    }//GEN-LAST:event_jButton10ActionPerformed
+    }//GEN-LAST:event_jButton9ActionPerformed
     
     
     
@@ -1268,13 +1227,26 @@ public class MenuFormAdmin extends javax.swing.JFrame {
             String imagePath = imageFolderPath + FILE_PATH_SEPARATES + studentId + FILE_PATH_SEPARATES;
             Mat frame;
             Image image;
+            Image tempImage = null;
+            List<Image> frameList = new ArrayList<>(1);
             boolean delay = true;
             File file = new File(imagePath);
             if(!file.exists()) {
                 file.mkdirs();
             }
             CaptureCameraFrameUsingOpenCv2 captureCameraFrameUsingOpenCv2 = new CaptureCameraFrameUsingOpenCv2(0);
-            for(int i = 1; i <= amountsOfImageNeedCollect; i++) {
+            try {
+                writer.write("DETECT\n");
+                writer.flush();
+                if(!reader.readLine().equalsIgnoreCase("OK")) {
+                    return;
+                }
+            }catch(Exception ex) {
+                ex.printStackTrace();
+            }
+            
+            for(int i = 1; i <= amountsOfImageNeedCollect;) {
+                frameList.clear();
                 if(delay) {
                     try {
                         Thread.sleep(1000);
@@ -1287,19 +1259,32 @@ public class MenuFormAdmin extends javax.swing.JFrame {
                 }
                 frame = captureCameraFrameUsingOpenCv2.captureFrame();
                 image = HighGui.toBufferedImage(frame);
-                drawImage.drawImage(image);
+                frameList.add(image);
                 try {
-                    saveImageToFile(image, imagePath + i + ".jpg");
+//                    writer.write("FRAME\n");
+//                    writer.flush();
+                    sendImageListToServer(frameList, writer);
+                    tempImage = waitResultImageResponseFromServer(reader);
+//                    saveImageToFile(image, imagePath + i + ".jpg");
                 } catch(Exception ex) {
                     ex.printStackTrace();
                 }
-                jLabel27.setText(i + "/" + amountsOfImageNeedCollect);
+                if(tempImage != null) {
+                    jLabel27.setText(i + "/" + amountsOfImageNeedCollect);
+                    image = tempImage;
+                }
+                drawImage.drawImage(image);
 //                try {
 //                    Thread.sleep(100);
 //                } catch(Exception ex) {
 //                    ex.printStackTrace();
 //                }
-                
+            }
+            try {
+                writer.write("EXIT\n");
+                writer.flush();
+            } catch(Exception ex) {
+                ex.printStackTrace();
             }
             captureCameraFrameUsingOpenCv2.releaseCamera();
         }
@@ -1322,6 +1307,24 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         khoas.setText(s.getKhoas());
         trangthaidiemdanh.setText("DA DIEM DANH");
         
+    }
+    
+    public Image waitResultImageResponseFromServer(BufferedReader reader) throws IOException {
+        String signal = "";
+        byte[] imageData;
+        Image resultImage = null;
+        String encodedFile;
+        signal = reader.readLine();
+        if(signal.equalsIgnoreCase("FAILURE")) {
+            return null;
+        }
+        if(signal.equalsIgnoreCase("IMAGE")) {
+            signal = reader.readLine();
+            encodedFile = signal;
+            imageData = Base64.getDecoder().decode(encodedFile);  
+            resultImage = ImageIO.read(new ByteArrayInputStream(imageData));
+        }
+        return resultImage;
     }
     
     public void getAttendanceHistoryOfCurrentDate(Date currentDate) {
@@ -1361,7 +1364,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
             khoas,
             trangthaidiemdanh,};
         
-        for(JTextField textField : textFields) q{
+        for(JTextField textField : textFields) {
             textField.setText("");
         }
     }
@@ -1452,7 +1455,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         byte[] imgData = b.toByteArray();
         System.out.println(imgData.length);
         encodedfile = new String(Base64.getEncoder().encode(imgData), "UTF-8");
-        System.out.println(encodedfile.length());
+//        System.out.println(encodedfile.length());
         writer.write(encodedfile);
         writer.flush();
         socket.getOutputStream().write(END_OF_FRAME);
@@ -1469,19 +1472,20 @@ public class MenuFormAdmin extends javax.swing.JFrame {
     
     
     public void sendImageToServerToTrain(BufferedReader reader, BufferedWriter writer) throws IOException {
-        writer.write("TRAIN\n");
-        writer.flush();
-        
         String signal;
         File imageForTrainDirectory = new File(CURRENT_WORKING_DIR + FILE_PATH_SEPARATES + "ImageForTrain");
         List<Image> imageList;
         
         for(FDA_Sinhvien sinhvien : newStudentList) {
+            writer.write("TRAIN\n");
+            writer.flush();
             while((signal = reader.readLine()) != null) {
                 if(signal.equalsIgnoreCase("OK")) {
                     writer.write(sinhvien.getMssv() + "\n");
                     writer.flush();
+                    System.out.println("Write MSSV complete");
                     imageList = loadImageFromFile(imageForTrainDirectory + FILE_PATH_SEPARATES + sinhvien.getMssv());
+                    System.out.println("Read image complete");
                     sendImageListToServer(imageList, writer);
     //                for(File file : imageForTrainDirectory.listFiles()) {
     //                    if(file.isDirectory()) {
@@ -1498,9 +1502,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         }
         writer.write("EXIT\n");
         writer.flush();
-        
         newStudentList.clear();
-        jLabel30.setText(String.valueOf(newStudentList.size()));
         clearNewStudentInfoFill();
         System.out.println("SEND_DATA_FOR_TRAIN_SUCCESS");
 
@@ -1581,7 +1583,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
             byte[] imageData;
             encodedFile = "";
             while((temp = reader.readLine()) != null) {
-                if(temp.equalsIgnoreCase("done")) {
+                if(temp.equalsIgnoreCase("DONE")) {
                     break;
                 }
                 if(temp.length() > 0) {
@@ -1592,12 +1594,12 @@ public class MenuFormAdmin extends javax.swing.JFrame {
             return imageData;
         }
         
+        
         public String handleResponseContainString() throws IOException, InterruptedException {
             String temp;
             String responseString = "";
-
             while((temp = reader.readLine()) != null) {
-                if(temp.equalsIgnoreCase("done")) {
+                if(temp.equalsIgnoreCase("DONE")) {
                     break;
                 }
                 System.out.println(temp);
@@ -1615,6 +1617,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
             byte[] imageData;
             while((signal = reader.readLine()) != null) {
                 if(signal.equalsIgnoreCase("image")) {
+                    System.out.println(signal);
                     imageData = handleResponseContainBase64EncodedImage();  
                     bufferedImage = ImageIO.read(new ByteArrayInputStream(imageData));
                 } else if(signal.equalsIgnoreCase("info")) {
@@ -1637,8 +1640,6 @@ public class MenuFormAdmin extends javax.swing.JFrame {
                     break;
                 } 
             }
-            writer.write("EXIT\n");
-            writer.flush();
         }
         
         public void handleFailureSignal() {
@@ -1648,31 +1649,46 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         public void run() {
             String signal;
             try {
-                writer.write("RECOGNIZE\n");
-                writer.flush();
-                while((signal = reader.readLine()) != null) {
-                    System.out.println("Receive signal: " + signal);
-                    if(signal.equalsIgnoreCase("success")) {
-                        handleSuccessSignal();
-                        continue;
-                    }
-                    while(frameList.size() < 10) {
-                        Thread.sleep(100);
-                    }
-                    System.out.println(frameList.size());
-                    if(frameList.size() == 10) {
-                        blockAddMoreFrame = true;
-                        Thread.sleep(100);
-                        if(sendListOfFrameToServer(frameList)) {
-                            frameList.clear();
-                        }else {
-                            return;
+                while(true) {
+                    writer.write("RECOGNIZE\n");
+                    writer.flush();
+                    while((signal = reader.readLine()) != null) {
+                        System.out.println("Receive signal: " + signal);
+                        if(signal.equalsIgnoreCase("ok")) {
+                            while(frameList.size() < 10) {
+                                if(stopRecognize) {
+                                    System.out.println("?????");
+                                    frameList.clear();
+                                    sendListOfFrameToServer(frameList);
+                                    serverResponseHanlderThread = null;
+                                    return;
+                                }
+                                Thread.sleep(100);
+//                                System.out.println("loop");
+                            }
+                            System.out.println(frameList.size());
+                            if(frameList.size() == 10) {
+                                blockAddMoreFrame = true;
+                                Thread.sleep(100);
+                                if(sendListOfFrameToServer(frameList)) {
+                                    frameList.clear();
+                                }else {
+//                                    writer.write("EXIT\n");
+//                                    writer.flush();
+                                    return;
+                                }
+                                blockAddMoreFrame = false;
+                            }
+                            System.out.println("Send Frame");
+                            System.out.println("End");
+                            Thread.sleep(50);
+                            continue;
                         }
-                        blockAddMoreFrame = false;
+                        if(signal.equalsIgnoreCase("success")) {
+                            handleSuccessSignal();
+                        }
+                        break;
                     }
-                    System.out.println("Send Frame");
-                    System.out.println("End");
-                    Thread.sleep(50); 
                 }
             } catch(SocketException ex) {
                 ex.printStackTrace();
@@ -1773,12 +1789,10 @@ public class MenuFormAdmin extends javax.swing.JFrame {
     private datechooser.beans.DateChooserCombo dateChooserCombo;
     private javax.swing.JTextField gioitinh;
     private javax.swing.JButton jButton1;
-    private javax.swing.JButton jButton10;
     private javax.swing.JButton jButton2;
     private javax.swing.JButton jButton3;
     private javax.swing.JButton jButton4;
     private javax.swing.JButton jButton5;
-    private javax.swing.JButton jButton6;
     private javax.swing.JButton jButton7;
     private javax.swing.JButton jButton8;
     private javax.swing.JButton jButton9;
@@ -1804,9 +1818,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel26;
     private javax.swing.JLabel jLabel27;
     private javax.swing.JLabel jLabel28;
-    private javax.swing.JLabel jLabel29;
     private javax.swing.JLabel jLabel3;
-    private javax.swing.JLabel jLabel30;
     private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel jLabel6;
