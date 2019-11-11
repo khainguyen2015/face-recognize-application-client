@@ -37,6 +37,9 @@ public class CaptureCameraFrameUsingOpenCv2 {
     
     public Mat captureFrame () {
         Mat frame = new Mat();
+//        for(int i = 0; i < 5; i++) {
+//            camera.read(frame);
+//        }
         camera.read(frame);
         return frame;
     }

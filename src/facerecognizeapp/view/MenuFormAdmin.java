@@ -58,7 +58,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
     /**
      * Creates new form MenuForm
      */
-    private static final int DEFAULT_AMOUNT_OF_FRAME_STORED = 10;
+    private static final int DEFAULT_AMOUNT_OF_FRAME_STORED = 5;
     private static final int END_OF_FRAME = -1;
     private static final int END_OF_FRAME_LIST = -2;
     private static final String CURRENT_WORKING_DIR = System.getProperty("user.dir");
@@ -120,8 +120,8 @@ public class MenuFormAdmin extends javax.swing.JFrame {
     }
     
     private void prepareBeforeExecution() throws IOException, ConnectException, SQLException{
-        socket = connectToServer("localhost", 5555);
-//        socket = connectToServer("192.168.0.2", 5555);
+//        socket = connectToServer("localhost", 5555);
+        socket = connectToServer("192.168.0.2", 5555);
         openStreamFromServer();
         serverResponseHandler = new ServerResponseHandler(socket);
         stopVideoStream = false;
@@ -1245,7 +1245,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
                 ex.printStackTrace();
             }
             
-            for(int i = 1; i <= amountsOfImageNeedCollect;) {
+            for(int i = 1; i <= amountsOfImageNeedCollect; i++) {
                 frameList.clear();
                 if(delay) {
                     try {
@@ -1261,8 +1261,8 @@ public class MenuFormAdmin extends javax.swing.JFrame {
                 image = HighGui.toBufferedImage(frame);
                 frameList.add(image);
                 try {
-//                    writer.write("FRAME\n");
-//                    writer.flush();
+                    writer.write("FRAME\n");
+                    writer.flush();
                     sendImageListToServer(frameList, writer);
                     tempImage = waitResultImageResponseFromServer(reader);
 //                    saveImageToFile(image, imagePath + i + ".jpg");
@@ -1655,7 +1655,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
                     while((signal = reader.readLine()) != null) {
                         System.out.println("Receive signal: " + signal);
                         if(signal.equalsIgnoreCase("ok")) {
-                            while(frameList.size() < 10) {
+                            while(frameList.size() < DEFAULT_AMOUNT_OF_FRAME_STORED) {
                                 if(stopRecognize) {
                                     System.out.println("?????");
                                     frameList.clear();
@@ -1667,7 +1667,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
 //                                System.out.println("loop");
                             }
                             System.out.println(frameList.size());
-                            if(frameList.size() == 10) {
+                            if(frameList.size() == DEFAULT_AMOUNT_OF_FRAME_STORED) {
                                 blockAddMoreFrame = true;
                                 Thread.sleep(100);
                                 if(sendListOfFrameToServer(frameList)) {
