@@ -14,22 +14,22 @@ import org.opencv.videoio.VideoCapture;
  */
 public class CaptureCameraFrameUsingOpenCv2 {
     
-    private final VideoCapture camera;
+    private VideoCapture camera;
     
     
-    public CaptureCameraFrameUsingOpenCv2(int deviceId) {
+    public CaptureCameraFrameUsingOpenCv2() {
         System.loadLibrary("opencv_java411");
-        camera = new VideoCapture(deviceId);
-        if(!camera.isOpened()){
-            System.out.println("Camera Error");
-        }
-        else{
-            System.out.println("Camera OK?");
-        }
-        
+        camera = new VideoCapture();
+    }
+    
+    public boolean openCamera(int deviceId) {
+        return camera.open(deviceId);
     }
     
     public void releaseCamera() {
+        if(!camera.isOpened()) {
+            return;
+        }
         if(camera != null) {
             camera.release();
         }

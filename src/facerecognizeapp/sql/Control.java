@@ -23,14 +23,68 @@ import java.util.logging.Logger;
  * @author macbook
  */
 public class Control {
+    
+    private static final String URL = "jdbc:mysql://localhost:3306/facedetectapplication";
+    private static final String USERNAME = "khai";
+    private static final String PASSWORD = "123456";
+    
 
     private final Connection conn;
     public Control() throws SQLException  {
-        ConnectSQL connectSQL = new ConnectSQL("jdbc:mysql://localhost:3306/facedetectapplication"
-                                               ,"khai"
-                                               ,"123456");
+        ConnectSQL connectSQL = new ConnectSQL(URL
+                                               ,USERNAME
+                                               ,PASSWORD);
         conn = connectSQL.getConnection();
         System.out.println("Ket noi CSDL thanh cong !!!");
+    }
+    
+    
+    public FDA_Account getAccout(String username, String password) throws SQLException {
+        if(username == null || password == null) {
+            return null;
+        }
+        FDA_Account account = null;
+        String sql;
+        sql = "SELECT * FROM ACCOUNT_CB WHERE USER_NAME = ? AND PASS_WORD = ?";
+        PreparedStatement ps= conn.prepareStatement(sql);
+        ps.setString(1, username);
+        ps.setString(2, password);
+        ResultSet rs=ps.executeQuery();
+        if (rs.next()) {
+            account = new FDA_Account();
+            account.setId(rs.getString("MSCB"));
+            account.setPrivilege(rs.getString("Privilege"));
+        }
+        return account;
+    }
+    
+    public void closeConnection() throws SQLException {
+        conn.close();
+    }
+    
+    
+    public FDA_Canbo getCanBo(String j) {
+        FDA_Canbo cb = new FDA_Canbo();
+        String sql;
+        sql = "SELECT * FROM CANBO WHERE MSCB = ?";
+        try {
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ps.setString(1,j);
+            ResultSet rs=ps.executeQuery();
+                while(rs.next()) {
+                    cb.setMscb(rs.getString("mscb"));
+                    cb.setTencb(rs.getString("tencb"));
+                    cb.setNgaysinh(rs.getDate("ngaysinhcb"));
+                    cb.setGioitinh(rs.getString("gioitinh"));
+                    cb.setBomon(rs.getString("bomon"));
+                    cb.setKhoa(rs.getString("khoa"));
+                    
+                }
+        } catch (SQLException ex) {
+            Logger.getLogger(Control.class.getName()).log(Level.SEVERE, null, ex);
+            //System.out.println("Khong co ma nhan vien nay !!!");
+        }
+       return cb; 
     }
     
     
