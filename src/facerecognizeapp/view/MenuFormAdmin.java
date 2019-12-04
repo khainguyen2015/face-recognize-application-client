@@ -70,8 +70,8 @@ public class MenuFormAdmin extends javax.swing.JFrame {
      * Creates new form MenuForm
      */
     private static final int DEFAULT_AMOUNT_OF_FRAME_STORED = 3;
-    private static final int DEFAULT_AMOUNT_OF_FRAME_COLLECT = 10;
-    private static final String[] DEFAULT_FACE_ANGLES = new String[] {"font_face", "left_face", "right_face"};
+    private static final int DEFAULT_AMOUNT_OF_FRAME_COLLECT = 100;
+    private static final String[] DEFAULT_FACE_ANGLES = new String[] {"font_face"};
     private static final int END_OF_FRAME = -1;
     private static final int END_OF_FRAME_LIST = -2;
     private static final String CURRENT_WORKING_DIR = System.getProperty("user.dir");
@@ -103,7 +103,6 @@ public class MenuFormAdmin extends javax.swing.JFrame {
     private final ServerResponseHandler serverResponseHandler;
     private final CollectDataForTrain collecDataForTrain;
     private final CollecDataForRecognize collecDataForRecognize;
-   
     
 //    
     
@@ -146,6 +145,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         if(privilege == Privilege.USER) {
             jTabbedPane3.remove(2);
         }
+        jLabel32.setText("0/" + DEFAULT_AMOUNT_OF_FRAME_COLLECT);
     }
     
     private void setLookAndFeel() {
@@ -276,17 +276,13 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         jButton5 = new javax.swing.JButton();
         jButton9 = new javax.swing.JButton();
         jLabel29 = new javax.swing.JLabel();
-        jLabel30 = new javax.swing.JLabel();
-        jLabel31 = new javax.swing.JLabel();
         jLabel32 = new javax.swing.JLabel();
-        jLabel33 = new javax.swing.JLabel();
-        jLabel34 = new javax.swing.JLabel();
         jLabel28 = new javax.swing.JLabel();
         jLabel35 = new javax.swing.JLabel();
         jButton4 = new javax.swing.JButton();
         jPanel17 = new javax.swing.JPanel();
         jPanel14 = new DrawImage();
-        jPanel15 = new javax.swing.JPanel();
+        attendance = new javax.swing.JPanel();
         jScrollPane2 = new javax.swing.JScrollPane();
         jTable1 = new javax.swing.JTable();
         dateChooserCombo = new datechooser.beans.DateChooserCombo();
@@ -648,7 +644,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
                 .addGroup(jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                     .addComponent(jLabel10, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(khoas, javax.swing.GroupLayout.DEFAULT_SIZE, 40, Short.MAX_VALUE))
-                .addContainerGap(39, Short.MAX_VALUE))
+                .addContainerGap(86, Short.MAX_VALUE))
         );
 
         javax.swing.GroupLayout jPanel5Layout = new javax.swing.GroupLayout(jPanel5);
@@ -663,7 +659,8 @@ public class MenuFormAdmin extends javax.swing.JFrame {
             .addGroup(jPanel5Layout.createSequentialGroup()
                 .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jPanel7, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addComponent(jPanel7, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
         jPanel6.setBackground(new java.awt.Color(51, 204, 255));
@@ -760,7 +757,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
                     .addComponent(jButton8, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(jPanel6, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(jButton7, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addContainerGap(50, Short.MAX_VALUE))
+                .addContainerGap(40, Short.MAX_VALUE))
         );
 
         jTabbedPane3.addTab("Điểm Danh", jPanel2);
@@ -815,17 +812,9 @@ public class MenuFormAdmin extends javax.swing.JFrame {
             }
         });
 
-        jLabel29.setText("Mặt Thẳng:");
+        jLabel29.setText("Dữ Liệu Thu Thập:");
 
-        jLabel30.setText("Mặt Nghiêng Trái:");
-
-        jLabel31.setText("Mặt Nghiêng Phải:");
-
-        jLabel32.setText("0/10");
-
-        jLabel33.setText("0/10");
-
-        jLabel34.setText("0/10");
+        jLabel32.setText("0/0");
 
         jLabel28.setForeground(new java.awt.Color(255, 0, 0));
         jLabel28.setText("*");
@@ -861,24 +850,19 @@ public class MenuFormAdmin extends javax.swing.JFrame {
                                 .addComponent(jLabel28)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(jLabel22, javax.swing.GroupLayout.PREFERRED_SIZE, 110, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addComponent(jLabel29)
-                            .addComponent(jLabel31)
-                            .addComponent(jLabel30, javax.swing.GroupLayout.PREFERRED_SIZE, 110, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addComponent(jLabel29))
                         .addGap(52, 52, 52)
                         .addGroup(jPanel13Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(jPanel13Layout.createSequentialGroup()
+                                .addComponent(jLabel32)
+                                .addGap(0, 0, Short.MAX_VALUE))
                             .addComponent(jid)
                             .addComponent(jname)
                             .addComponent(jngaysinh)
                             .addComponent(jgioitinh)
                             .addComponent(jnganh)
                             .addComponent(jkhoas)
-                            .addComponent(jkhoa, javax.swing.GroupLayout.DEFAULT_SIZE, 177, Short.MAX_VALUE)
-                            .addGroup(jPanel13Layout.createSequentialGroup()
-                                .addGroup(jPanel13Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                    .addComponent(jLabel32)
-                                    .addComponent(jLabel33)
-                                    .addComponent(jLabel34))
-                                .addGap(0, 0, Short.MAX_VALUE)))))
+                            .addComponent(jkhoa, javax.swing.GroupLayout.DEFAULT_SIZE, 177, Short.MAX_VALUE))))
                 .addContainerGap())
         );
         jPanel13Layout.setVerticalGroup(
@@ -914,19 +898,11 @@ public class MenuFormAdmin extends javax.swing.JFrame {
                 .addGroup(jPanel13Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jkhoa, javax.swing.GroupLayout.PREFERRED_SIZE, 40, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel24, javax.swing.GroupLayout.PREFERRED_SIZE, 40, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(52, 52, 52)
+                .addGap(18, 18, 18)
                 .addGroup(jPanel13Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel29)
                     .addComponent(jLabel32))
-                .addGap(18, 18, 18)
-                .addGroup(jPanel13Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel30)
-                    .addComponent(jLabel33))
-                .addGap(18, 18, 18)
-                .addGroup(jPanel13Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel31, javax.swing.GroupLayout.PREFERRED_SIZE, 16, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabel34))
-                .addGap(52, 52, 52)
+                .addGap(154, 154, 154)
                 .addGroup(jPanel13Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jButton5, javax.swing.GroupLayout.PREFERRED_SIZE, 40, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jButton9, javax.swing.GroupLayout.PREFERRED_SIZE, 40, javax.swing.GroupLayout.PREFERRED_SIZE)))
@@ -994,7 +970,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
             .addGroup(jPanel8Layout.createSequentialGroup()
                 .addContainerGap()
                 .addComponent(jPanel12, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 26, Short.MAX_VALUE)
                 .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jPanel17, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jButton4, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 163, javax.swing.GroupLayout.PREFERRED_SIZE))
@@ -1090,12 +1066,12 @@ public class MenuFormAdmin extends javax.swing.JFrame {
 
         jLabel27.setText("Nhập Mã Sinh Viên:");
 
-        javax.swing.GroupLayout jPanel15Layout = new javax.swing.GroupLayout(jPanel15);
-        jPanel15.setLayout(jPanel15Layout);
-        jPanel15Layout.setHorizontalGroup(
-            jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+        javax.swing.GroupLayout attendanceLayout = new javax.swing.GroupLayout(attendance);
+        attendance.setLayout(attendanceLayout);
+        attendanceLayout.setHorizontalGroup(
+            attendanceLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 1115, Short.MAX_VALUE)
-            .addGroup(jPanel15Layout.createSequentialGroup()
+            .addGroup(attendanceLayout.createSequentialGroup()
                 .addContainerGap()
                 .addComponent(dateChooserCombo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(167, 167, 167)
@@ -1106,13 +1082,13 @@ public class MenuFormAdmin extends javax.swing.JFrame {
                 .addComponent(jButton1)
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
-        jPanel15Layout.setVerticalGroup(
-            jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel15Layout.createSequentialGroup()
+        attendanceLayout.setVerticalGroup(
+            attendanceLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, attendanceLayout.createSequentialGroup()
                 .addContainerGap()
-                .addGroup(jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                .addGroup(attendanceLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                     .addComponent(dateChooserCombo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addGroup(jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addGroup(attendanceLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                         .addComponent(jTextField4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addComponent(jButton1)
                         .addComponent(jLabel27)))
@@ -1120,7 +1096,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
                 .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 555, Short.MAX_VALUE))
         );
 
-        jTabbedPane3.addTab("Lịch Sử Điểm Danh", jPanel15);
+        jTabbedPane3.addTab("Lịch Sử Điểm Danh", attendance);
 
         jMenu1.setText("File");
 
@@ -1189,8 +1165,10 @@ public class MenuFormAdmin extends javax.swing.JFrame {
             clearNewStudentInfoFill();
             labelIndex = 0;
         }
-
-        if(jTabbedPane3.getSelectedIndex() == 3) {
+//        attendance
+     
+        int a = jTabbedPane3.indexOfTab("Lịch Sử Điểm Danh");
+        if(jTabbedPane3.getSelectedIndex() == a) {
             Date currDate = dateChooserCombo.getSelectedDate().getTime();
             getAttendanceHistoryOfCurrentDate(currDate);
         }
@@ -1218,8 +1196,6 @@ public class MenuFormAdmin extends javax.swing.JFrame {
 //        }
         JLabel[] labels = new JLabel[] {
             jLabel32,
-            jLabel33,
-            jLabel34
         };
         
         String studentId = null;
@@ -1248,23 +1224,23 @@ public class MenuFormAdmin extends javax.swing.JFrame {
 
     private void jButton9ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton9ActionPerformed
         // TODO add your handling code here:
-        
-        try {
-            if(deleteTrainImageOnServer(jid.getText())){
-                showMessage("NOTIFICATION", "Xóa thành công");
-            }else {
-                showMessage("ERROR", "Xóa thất bại");
-            }
-        }catch(IOException ex) {
-            showMessage("ERROR", "ERROR OCCURED!");
-            ex.printStackTrace();
-        }
+//        try {
+//            if(deleteTrainImageOnServer(jid.getText())){
+//                showMessage("NOTIFICATION", "Xóa thành công");
+//            }else {
+//                showMessage("ERROR", "Xóa thất bại");
+//            }
+//        }catch(IOException ex) {
+//            showMessage("ERROR", "ERROR OCCURED!");
+//            ex.printStackTrace();
+//        }
         newStudentList.clear();
         clearNewStudentInfoFill();
+        showMessage("NOTIFICATION", "Xóa thành công");
     }//GEN-LAST:event_jButton9ActionPerformed
 
     private void jButton5ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton5ActionPerformed
-        if(checkStudentInfoFullFill()) {
+        if(!checkStudentInfoFullFill()) {
             showMessage("ERROR", "Thông Tin Sinh Viên Chưa Đầy Đủ");
             return;
         }
@@ -1433,7 +1409,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
             showAdminInfo(adminInfo);
         }
         
-        admin.setAvatarPath("images" + FILE_PATH_SEPARATE + "canbo" + FILE_PATH_SEPARATE + f.getName());
+        admin.setAvatarPath(f.getName());
         if(dataRepository.updateCanBo(admin)) {
             showMessage("NOTIFICATION", "Cập nhật thành công");
         } else {
@@ -1620,9 +1596,11 @@ public class MenuFormAdmin extends javax.swing.JFrame {
                 //wait camera ready for capture frame
                 Thread.sleep(1000);
                 for(int i = 1; i <= amountsOfImageNeedCollect; i++) {
-                    i -= 1;
+//                    System.out.println("send");
+//                    /i -= 1;
+                    frameList.clear();
                     image = captureCameraFrameUsingOpenCv2.captureImage();
-                    frameList.add(0, image);
+                    frameList.add(image);
                     sendSignal("FRAME\n", writer);
                     sendImageListToServer(frameList, writer);
                     imageContainFace = waitImageResponseFromServer(reader);
@@ -1645,6 +1623,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
                 jButton4.setEnabled(true);
                 jTabbedPane3.setEnabled(true);
                 jButton9.setEnabled(true);
+                
                 if(labelIndex == DEFAULT_FACE_ANGLES.length){
                     jButton5.setEnabled(true);
                     jButton4.setEnabled(false);
@@ -1784,8 +1763,10 @@ public class MenuFormAdmin extends javax.swing.JFrame {
                         Thread.sleep(100);
                         System.out.println("video stream blocked");
                         drawFramePanel.drawImage(bufferedImage);
-                        showStudentInfo(studentID);
-                        writeHistory();
+                        if(!studentID.equalsIgnoreCase("unknow")) {
+                            showStudentInfo(studentID);
+                            writeHistory();
+                        }
                         //after 5 second. Begin recognize again
                         Thread.sleep(5000);
                         clearTextField();
@@ -1890,7 +1871,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         jTextField13.setText(cb.getBomon());
         if(cb.getAvatarPath() != null){
             DrawImage drawImage = (DrawImage)jPanel10;
-            ImageIcon imageIcon = new ImageIcon(cb.getAvatarPath());
+            ImageIcon imageIcon = new ImageIcon("images" + FILE_PATH_SEPARATE + "canbo" + FILE_PATH_SEPARATE + cb.getAvatarPath());
             drawImage.drawImage(imageIcon.getImage());
         }
         //draw_Image(image_url);
@@ -2030,8 +2011,6 @@ public class MenuFormAdmin extends javax.swing.JFrame {
             jkhoa};
         JLabel[] labels = new JLabel[] {
             jLabel32,
-            jLabel33,
-            jLabel34
         };
         for(JTextField jTextField : jTextFields) {
             jTextField.setText("");
@@ -2150,6 +2129,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JPanel attendance;
     private datechooser.beans.DateChooserCombo dateChooserCombo;
     private javax.swing.JTextField gioitinh;
     private javax.swing.JButton jButton1;
@@ -2185,11 +2165,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel28;
     private javax.swing.JLabel jLabel29;
     private javax.swing.JLabel jLabel3;
-    private javax.swing.JLabel jLabel30;
-    private javax.swing.JLabel jLabel31;
     private javax.swing.JLabel jLabel32;
-    private javax.swing.JLabel jLabel33;
-    private javax.swing.JLabel jLabel34;
     private javax.swing.JLabel jLabel35;
     private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
@@ -2208,7 +2184,6 @@ public class MenuFormAdmin extends javax.swing.JFrame {
     private javax.swing.JPanel jPanel12;
     private javax.swing.JPanel jPanel13;
     private javax.swing.JPanel jPanel14;
-    private javax.swing.JPanel jPanel15;
     private javax.swing.JPanel jPanel16;
     private javax.swing.JPanel jPanel17;
     private javax.swing.JPanel jPanel2;
