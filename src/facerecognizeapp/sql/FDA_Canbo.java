@@ -18,6 +18,7 @@ public class FDA_Canbo {
     private String gioitinh;
     private String bomon;
     private String khoa;
+    private String avatarPath;
 
     public String getMscb() {
         return mscb;
@@ -66,6 +67,16 @@ public class FDA_Canbo {
     public void setKhoa(String khoa) {
         this.khoa = khoa;
     }
+
+    public String getAvatarPath() {
+        return avatarPath;
+    }
+
+    public void setAvatarPath(String avatarPath) {
+        this.avatarPath = avatarPath;
+    }
+    
+    
     
     
 }

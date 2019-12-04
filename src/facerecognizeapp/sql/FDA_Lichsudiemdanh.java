@@ -14,9 +14,9 @@ import java.util.Date;
 public class FDA_Lichsudiemdanh {
     private String mssv;
     private String tensv;
-    private Date ngaysinhsv;
     private String gioitinh;
     private Date ngaydiemdanh;
+    private String thoiGianDiemDanh;
 
     public String getMssv() {
         return mssv;
@@ -34,20 +34,20 @@ public class FDA_Lichsudiemdanh {
         this.tensv = tensv;
     }
 
-    public Date getNgaysinhsv() {
-        return ngaysinhsv;
-    }
-
-    public void setNgaysinhsv(Date ngaysinhsv) {
-        this.ngaysinhsv = ngaysinhsv;
-    }
-
     public String getGioitinh() {
         return gioitinh;
     }
 
     public void setGioitinh(String gioitinh) {
         this.gioitinh = gioitinh;
+    }
+
+    public String getThoiGianDiemDanh() {
+        return thoiGianDiemDanh;
+    }
+
+    public void setThoiGianDiemDanh(String thoiGianDiemDanh) {
+        this.thoiGianDiemDanh = thoiGianDiemDanh;
     }
 
     

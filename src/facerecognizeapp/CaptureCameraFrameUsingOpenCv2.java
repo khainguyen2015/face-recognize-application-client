@@ -5,7 +5,9 @@
  */
 package facerecognizeapp;
 
+import java.awt.Image;
 import org.opencv.core.Mat;
+import org.opencv.highgui.HighGui;
 import org.opencv.videoio.VideoCapture;
 
 /**
@@ -42,6 +44,12 @@ public class CaptureCameraFrameUsingOpenCv2 {
 //        }
         camera.read(frame);
         return frame;
+    }
+    
+    public Image captureImage() {
+        Image image;
+        image = HighGui.toBufferedImage(captureFrame());
+        return image;
     }
     
     

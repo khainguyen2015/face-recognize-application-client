@@ -7,7 +7,6 @@ package facerecognizeapp.sql;
 
 import facerecognizeapp.ConnectSQL;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -39,7 +38,7 @@ public class Control {
     }
     
     
-    public FDA_Account getAccout(String username, String password) throws SQLException {
+    public FDA_Account getAccount(String username, String password) throws SQLException {
         if(username == null || password == null) {
             return null;
         }
@@ -78,13 +77,36 @@ public class Control {
                     cb.setGioitinh(rs.getString("gioitinh"));
                     cb.setBomon(rs.getString("bomon"));
                     cb.setKhoa(rs.getString("khoa"));
-                    
+                    cb.setAvatarPath(rs.getString("avatar_path"));
                 }
         } catch (SQLException ex) {
             Logger.getLogger(Control.class.getName()).log(Level.SEVERE, null, ex);
             //System.out.println("Khong co ma nhan vien nay !!!");
         }
        return cb; 
+    }
+    
+    public boolean updateCanBo(FDA_Canbo canbo) {
+        String sql;
+        sql = "CALL UPDATECANBO(?, ?, ?, ?, ?, ?, ?)";
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+        java.sql.Date sqlDate = java.sql.Date.valueOf(df.format(canbo.getNgaysinh()));
+        try {
+            PreparedStatement ps;
+            ps = conn.prepareCall(sql);
+            ps.setString(1, canbo.getMscb());
+            ps.setString(2, canbo.getTencb());
+            ps.setDate(3, sqlDate);
+            ps.setString(4, canbo.getGioitinh());
+            ps.setString(5, canbo.getBomon());
+            ps.setString(6, canbo.getKhoa());
+            ps.setString(7, canbo.getAvatarPath());
+            return ps.executeUpdate() > 0;
+        } catch (SQLException ex) {
+            Logger.getLogger(Control.class.getName()).log(Level.SEVERE, null, ex);
+            //System.out.println("Khong co ma nhan vien nay !!!");
+        }
+        return false;
     }
     
     
@@ -150,9 +172,9 @@ public class Control {
                     FDA_Lichsudiemdanh l = new FDA_Lichsudiemdanh();
                     l.setMssv(rs.getString("mssv"));
                     l.setTensv(rs.getString("tensv"));
-                    l.setNgaysinhsv(rs.getDate("ngaysinhsv"));
                     l.setGioitinh(rs.getString("gioitinh"));
                     l.setNgaydiemdanh(rs.getDate("ngaydiemdanh"));
+                    l.setThoiGianDiemDanh(rs.getTime("thoigiandiemdanh").toString());
                     list.add(l);
                 }
         } catch (SQLException ex) {
@@ -169,22 +191,24 @@ public class Control {
 //        return null;
     }
     
-    public ArrayList<FDA_Lichsudiemdanh> doclichsutheomssv(String ms) {
+    public ArrayList<FDA_Lichsudiemdanh> doclichsutheomssv(String ms, Date date) {
         String sql;
         ArrayList<FDA_Lichsudiemdanh> list1 = new ArrayList<>();
-        sql = "CALL DOCLICHSUTHEOMSSV(?)";
+        sql = "CALL DOCLICHSUTHEOMSSV(?, ?)";
         DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+        java.sql.Date sqlDate = java.sql.Date.valueOf(df.format(date));
         try {
             PreparedStatement ps = conn.prepareStatement(sql);
             ps.setString(1, ms);
+            ps.setDate(2, sqlDate);
             ResultSet rs = ps.executeQuery();
                 while(rs.next()) {
                     FDA_Lichsudiemdanh l = new FDA_Lichsudiemdanh();
                     l.setMssv(rs.getString("mssv"));
                     l.setTensv(rs.getString("tensv"));
-                    l.setNgaysinhsv(rs.getDate("ngaysinhsv"));
                     l.setGioitinh(rs.getString("gioitinh"));
                     l.setNgaydiemdanh(rs.getDate("ngaydiemdanh"));
+                    l.setThoiGianDiemDanh(rs.getTime("thoigiandiemdanh").toString());
                     list1.add(l);
                 }
         } catch (SQLException ex) {
@@ -195,14 +219,17 @@ public class Control {
     
     public boolean ghilichsu(FDA_Lichsudiemdanh lichsudiemdanh) {      
         String sql;
-        sql = "CALL GHILICHSU(?,?)";
-        DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
-        java.sql.Date sqlDate = java.sql.Date.valueOf(df.format(lichsudiemdanh.getNgaydiemdanh()));
+        sql = "CALL GHILICHSU(?, ?, ?)";
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        String[] dateAndTime = sdf.format(lichsudiemdanh.getNgaydiemdanh()).split(" ");
+        java.sql.Date sqlDate = java.sql.Date.valueOf(dateAndTime[0]);
+        java.sql.Time sqlTime = java.sql.Time.valueOf(dateAndTime[1]);
         try {
             PreparedStatement ps;
             ps = conn.prepareCall(sql);
             ps.setString(1, lichsudiemdanh.getMssv());
             ps.setDate(2, sqlDate);
+            ps.setTime(3, sqlTime);
             return ps.executeUpdate() > 0;
         } catch (SQLException ex) {
             Logger.getLogger(Control.class.getName()).log(Level.SEVERE, null, ex);

@@ -41,28 +41,42 @@ import org.opencv.highgui.HighGui;
 
 import facerecognizeapp.CaptureCameraFrameUsingOpenCv2;
 import facerecognizeapp.DrawImage;
+import facerecognizeapp.Utilities;
 import facerecognizeapp.sql.Control;
 import facerecognizeapp.sql.FDA_Sinhvien;
 import facerecognizeapp.sql.FDA_Lichsudiemdanh;
 import facerecognizeapp.sql.FDA_Canbo;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.swing.ImageIcon;
+import javax.swing.JFileChooser;
 import javax.swing.JLabel;
+import javax.swing.filechooser.FileNameExtensionFilter;
 /**
  *
  * @author macbook
  */
 public class MenuFormAdmin extends javax.swing.JFrame {
+    
+    public enum Privilege {
+        ADMIN,
+        USER
+    }
 
     /**
      * Creates new form MenuForm
      */
-    private static final int DEFAULT_AMOUNT_OF_FRAME_STORED = 1;
+    private static final int DEFAULT_AMOUNT_OF_FRAME_STORED = 3;
     private static final int DEFAULT_AMOUNT_OF_FRAME_COLLECT = 10;
     private static final String[] DEFAULT_FACE_ANGLES = new String[] {"font_face", "left_face", "right_face"};
     private static final int END_OF_FRAME = -1;
     private static final int END_OF_FRAME_LIST = -2;
     private static final String CURRENT_WORKING_DIR = System.getProperty("user.dir");
     private static final String FILE_PATH_SEPARATE = System.getProperty("file.separator");
+    private static final String DEFAULT_IMAGE_PATH = CURRENT_WORKING_DIR + FILE_PATH_SEPARATE + "images" + FILE_PATH_SEPARATE + "canbo";
     private static final Object LOCK_VIDEOSTREAM_THREAD = new Object();
     private static final String SEVER_IP = "localhost";
     private static final int SEVER_PORT = 5555;
@@ -75,7 +89,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
     private Socket socket;
     private Thread videoStreamThread;
     private Thread serverResponseHanlderThread;
-    private Control sinhVienRepository;
+    private Control dataRepository;
     private FDA_Canbo adminInfo;
 
     private List<FDA_Lichsudiemdanh> attendedStudentList;
@@ -86,60 +100,52 @@ public class MenuFormAdmin extends javax.swing.JFrame {
     private SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
     
     private CaptureCameraFrameUsingOpenCv2 captureCameraFrameUsingOpenCv2;
-    private ServerResponseHandler serverResponseHandler;
-    private CollectDataForTrain collecDataForTrain;
-    private CollecDataForRecognize collecDataForRecognize;
+    private final ServerResponseHandler serverResponseHandler;
+    private final CollectDataForTrain collecDataForTrain;
+    private final CollecDataForRecognize collecDataForRecognize;
    
     
 //    
-    
     
     public MenuFormAdmin() {
         setLookAndFeel();
         try {
             prepareBeforeExecution();
-        } catch(ConnectException e) {
-            e.printStackTrace();
-            System.out.println("Can't connect to sever");
-            socketConnectionResetHandle();
-            this.dispose();
-            System.exit(0);
         } catch(SQLException ex) {
             ex.printStackTrace();
             System.out.println("Can't connect to DataBase");
-            return;
+            dataBaseConnectionErrorHandle();
         } catch(Exception ex) {
             ex.printStackTrace();
         } 
         initComponents();
-//        jButton8.setEnabled(false);
         DrawImage drawFramePanel = (DrawImage)jPanel4;
         serverResponseHandler = new ServerResponseHandler(socket, drawFramePanel);
+        collecDataForRecognize = new CollecDataForRecognize((DrawImage)jPanel4);
+        collecDataForTrain = new CollectDataForTrain(socket, null, null, DEFAULT_AMOUNT_OF_FRAME_COLLECT);
     }
     
-    public MenuFormAdmin(String adminId) {
+    public MenuFormAdmin(String adminId, Privilege privilege) {
         setLookAndFeel();
         try {
             prepareBeforeExecution();
-        } catch(ConnectException e) {
-            e.printStackTrace();
-            System.out.println("Can't connect to sever");
-            socketConnectionResetHandle();
-            this.dispose();
-            System.exit(0);
         } catch(SQLException ex) {
             ex.printStackTrace();
             System.out.println("Can't connect to DataBase");
-            return;
+            dataBaseConnectionErrorHandle();
         } catch(Exception ex) {
             ex.printStackTrace();
         } 
         initComponents();
-//        jButton8.setEnabled(false);
-        adminInfo = sinhVienRepository.getCanBo(adminId);
+        adminInfo = dataRepository.getCanBo(adminId);
         showAdminInfo(adminInfo);
         DrawImage drawFramePanel = (DrawImage)jPanel4;
         serverResponseHandler = new ServerResponseHandler(socket, drawFramePanel);
+        collecDataForRecognize = new CollecDataForRecognize((DrawImage)jPanel4);
+        collecDataForTrain = new CollectDataForTrain(socket, null, null, DEFAULT_AMOUNT_OF_FRAME_COLLECT);
+        if(privilege == Privilege.USER) {
+            jTabbedPane3.remove(2);
+        }
     }
     
     private void setLookAndFeel() {
@@ -173,17 +179,23 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         writer = new BufferedWriter(streamWriter);
     }
     
-    private void prepareBeforeExecution() throws IOException, ConnectException, SQLException{
-        socket = connectToServer(SEVER_IP, SEVER_PORT);
+    private void prepareBeforeExecution() throws IOException, SQLException{
+        try {
+            socket = connectToServer(SEVER_IP, SEVER_PORT);
+        } catch(ConnectException ex) {
+            System.out.println("Can't connect to sever");
+            ex.printStackTrace();
+            socketConnectionErrorHandle();
+        }
         openStreamFromServer(socket);
         frameList = new ArrayList<>(DEFAULT_AMOUNT_OF_FRAME_STORED);
-        sinhVienRepository = new Control();
+        dataRepository = new Control();
         newStudentList = new ArrayList<>(1);
         captureCameraFrameUsingOpenCv2 = new CaptureCameraFrameUsingOpenCv2();
-        collecDataForTrain = new CollectDataForTrain(socket, null, null, DEFAULT_AMOUNT_OF_FRAME_COLLECT, null);
-
+        
+        
     }
-
+    
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -211,12 +223,12 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         jTextField11 = new javax.swing.JTextField();
         jTextField12 = new javax.swing.JTextField();
         jTextField13 = new javax.swing.JTextField();
-        jPanel10 = new javax.swing.JPanel();
+        jPanel10 = new DrawImage();
+        jButton2 = new javax.swing.JButton();
         jPanel11 = new javax.swing.JPanel();
         jLabel12 = new javax.swing.JLabel();
-        jButton1 = new javax.swing.JButton();
-        jButton2 = new javax.swing.JButton();
         jButton3 = new javax.swing.JButton();
+        jButton6 = new javax.swing.JButton();
         jPanel2 = new javax.swing.JPanel();
         jPanel4 = new DrawImage();
         jPanel5 = new javax.swing.JPanel();
@@ -269,6 +281,8 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         jLabel32 = new javax.swing.JLabel();
         jLabel33 = new javax.swing.JLabel();
         jLabel34 = new javax.swing.JLabel();
+        jLabel28 = new javax.swing.JLabel();
+        jLabel35 = new javax.swing.JLabel();
         jButton4 = new javax.swing.JButton();
         jPanel17 = new javax.swing.JPanel();
         jPanel14 = new DrawImage();
@@ -276,6 +290,9 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         jScrollPane2 = new javax.swing.JScrollPane();
         jTable1 = new javax.swing.JTable();
         dateChooserCombo = new datechooser.beans.DateChooserCombo();
+        jTextField4 = new javax.swing.JTextField();
+        jButton1 = new javax.swing.JButton();
+        jLabel27 = new javax.swing.JLabel();
         jMenuBar1 = new javax.swing.JMenuBar();
         jMenu1 = new javax.swing.JMenu();
         jMenuItem1 = new javax.swing.JMenuItem();
@@ -315,27 +332,33 @@ public class MenuFormAdmin extends javax.swing.JFrame {
 
         jLabel1.setFont(new java.awt.Font("Lucida Grande", 1, 18)); // NOI18N
         jLabel1.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel1.setText("THONG TIN CA NHAN");
+        jLabel1.setText("THÔNG TIN CÁ NHÂN");
 
         jPanel9.setBackground(new java.awt.Color(255, 255, 255));
 
-        jLabel11.setText("Ho va ten");
+        jLabel11.setText("Họ và tên");
 
-        jLabel13.setText("Ngay Sinh");
+        jLabel13.setText("Ngày Sinh");
 
-        jLabel14.setText("Gioi tinh");
+        jLabel14.setText("Giới tính");
 
-        jLabel15.setText("Ma so can bo");
+        jLabel15.setText("Mã số cán bộ");
 
         jLabel16.setText("Khoa");
 
-        jLabel17.setText("Chuc vu");
+        jLabel17.setText("Chức vụ");
 
         jTextField1.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jTextField1ActionPerformed(evt);
             }
         });
+
+        jTextField11.setEditable(false);
+
+        jTextField12.setEditable(false);
+
+        jTextField13.setEditable(false);
 
         javax.swing.GroupLayout jPanel9Layout = new javax.swing.GroupLayout(jPanel9);
         jPanel9.setLayout(jPanel9Layout);
@@ -364,10 +387,10 @@ public class MenuFormAdmin extends javax.swing.JFrame {
             jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel9Layout.createSequentialGroup()
                 .addContainerGap()
-                .addGroup(jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                .addGroup(jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jLabel11, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jTextField1))
-                .addGap(18, 18, 18)
+                    .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addGroup(jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                     .addComponent(jTextField2, javax.swing.GroupLayout.DEFAULT_SIZE, 30, Short.MAX_VALUE)
                     .addComponent(jLabel13, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
@@ -391,18 +414,26 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         );
 
         jPanel10.setBackground(new java.awt.Color(255, 255, 153));
+        jPanel10.setBorder(javax.swing.BorderFactory.createEtchedBorder());
         jPanel10.setPreferredSize(new java.awt.Dimension(114, 116));
 
         javax.swing.GroupLayout jPanel10Layout = new javax.swing.GroupLayout(jPanel10);
         jPanel10.setLayout(jPanel10Layout);
         jPanel10Layout.setHorizontalGroup(
             jPanel10Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 176, Short.MAX_VALUE)
+            .addGap(0, 172, Short.MAX_VALUE)
         );
         jPanel10Layout.setVerticalGroup(
             jPanel10Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 209, Short.MAX_VALUE)
+            .addGap(0, 205, Short.MAX_VALUE)
         );
+
+        jButton2.setText("Đổi Ảnh");
+        jButton2.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton2ActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
         jPanel3.setLayout(jPanel3Layout);
@@ -410,11 +441,13 @@ public class MenuFormAdmin extends javax.swing.JFrame {
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel3Layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(jLabel1, javax.swing.GroupLayout.DEFAULT_SIZE, 789, Short.MAX_VALUE)
+                .addComponent(jLabel1, javax.swing.GroupLayout.DEFAULT_SIZE, 825, Short.MAX_VALUE)
                 .addContainerGap())
             .addGroup(jPanel3Layout.createSequentialGroup()
                 .addGap(67, 67, 67)
-                .addComponent(jPanel10, javax.swing.GroupLayout.PREFERRED_SIZE, 176, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(jPanel10, javax.swing.GroupLayout.DEFAULT_SIZE, 176, Short.MAX_VALUE)
+                    .addComponent(jButton2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addGap(63, 63, 63)
                 .addComponent(jPanel9, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
@@ -427,7 +460,10 @@ public class MenuFormAdmin extends javax.swing.JFrame {
                 .addGap(18, 18, 18)
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jPanel9, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jPanel10, javax.swing.GroupLayout.PREFERRED_SIZE, 209, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(jPanel3Layout.createSequentialGroup()
+                        .addComponent(jPanel10, javax.swing.GroupLayout.PREFERRED_SIZE, 209, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(18, 18, 18)
+                        .addComponent(jButton2)))
                 .addContainerGap(128, Short.MAX_VALUE))
         );
 
@@ -438,14 +474,17 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         jLabel12.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel12.setText("MENU");
 
-        jButton1.setText("jButton1");
-
-        jButton2.setText("jButton2");
-
-        jButton3.setText("DANG XUAT");
+        jButton3.setText("ĐĂNG XUẤT");
         jButton3.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jButton3ActionPerformed(evt);
+            }
+        });
+
+        jButton6.setText("LƯU THÔNG TIN");
+        jButton6.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton6ActionPerformed(evt);
             }
         });
 
@@ -453,13 +492,12 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         jPanel11.setLayout(jPanel11Layout);
         jPanel11Layout.setHorizontalGroup(
             jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel11Layout.createSequentialGroup()
+            .addGroup(jPanel11Layout.createSequentialGroup()
                 .addContainerGap()
-                .addGroup(jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addComponent(jButton3, javax.swing.GroupLayout.DEFAULT_SIZE, 207, Short.MAX_VALUE)
-                    .addComponent(jButton2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jLabel12, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jButton1, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addGroup(jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jButton6, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jLabel12, javax.swing.GroupLayout.DEFAULT_SIZE, 207, Short.MAX_VALUE)
+                    .addComponent(jButton3, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, 207, Short.MAX_VALUE))
                 .addContainerGap())
         );
         jPanel11Layout.setVerticalGroup(
@@ -468,9 +506,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
                 .addContainerGap()
                 .addComponent(jLabel12, javax.swing.GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
-                .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(18, 18, 18)
-                .addComponent(jButton2, javax.swing.GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(jButton6, javax.swing.GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
                 .addComponent(jButton3, javax.swing.GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
@@ -497,7 +533,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
                 .addContainerGap())
         );
 
-        jTabbedPane3.addTab("Quan Ly", jPanel1);
+        jTabbedPane3.addTab("Quản Lý", jPanel1);
 
         jPanel2.setBackground(new java.awt.Color(255, 255, 255));
 
@@ -517,25 +553,38 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         jPanel5.setBackground(new java.awt.Color(204, 204, 255));
 
         jLabel2.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel2.setText("Thong tin nguoi diem danh");
+        jLabel2.setText("Thông tin người điểm danh");
 
         jPanel7.setBackground(new java.awt.Color(255, 255, 255));
         jPanel7.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
 
-        jLabel4.setText("Ho va ten");
+        jLabel4.setText("Họ và tên:");
 
-        jLabel5.setText("Ngay sinh");
+        jLabel5.setText("Ngày sinh:");
 
-        jLabel6.setText("Gioi tinh");
+        jLabel6.setText("Giới tính:");
 
-        jLabel8.setText("Nganh dao tao");
+        jLabel8.setText("Ngành đào tạo:");
 
-        jLabel9.setText("Khóa");
+        jLabel9.setText("Khóa:");
 
-        jLabel10.setText("Khoa");
+        jLabel10.setText("Khoa:");
 
-        jLabel7.setText("Ma so sinh vien");
+        ngaysinh.setEditable(false);
 
+        gioitinh.setEditable(false);
+
+        nganh.setEditable(false);
+
+        khoa.setEditable(false);
+
+        khoas.setEditable(false);
+
+        jLabel7.setText("Mã sinh viên:");
+
+        mssv.setEditable(false);
+
+        name_sv.setEditable(false);
         name_sv.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 name_svActionPerformed(evt);
@@ -556,16 +605,16 @@ public class MenuFormAdmin extends javax.swing.JFrame {
                         .addComponent(jLabel6, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addComponent(jLabel5, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addComponent(jLabel4, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                    .addComponent(jLabel7, javax.swing.GroupLayout.DEFAULT_SIZE, 129, Short.MAX_VALUE))
+                    .addComponent(jLabel7, javax.swing.GroupLayout.DEFAULT_SIZE, 147, Short.MAX_VALUE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(ngaysinh)
                     .addComponent(gioitinh)
                     .addComponent(nganh)
                     .addComponent(khoa)
-                    .addComponent(khoas, javax.swing.GroupLayout.DEFAULT_SIZE, 244, Short.MAX_VALUE)
-                    .addComponent(mssv, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, 244, Short.MAX_VALUE)
-                    .addComponent(name_sv, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, 244, Short.MAX_VALUE))
+                    .addComponent(khoas, javax.swing.GroupLayout.DEFAULT_SIZE, 262, Short.MAX_VALUE)
+                    .addComponent(mssv, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, 262, Short.MAX_VALUE)
+                    .addComponent(name_sv, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, 262, Short.MAX_VALUE))
                 .addContainerGap())
         );
         jPanel7Layout.setVerticalGroup(
@@ -621,12 +670,14 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         jPanel6.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
 
         jLabel3.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel3.setText("TRANG THAI DIEM DANH");
+        jLabel3.setText("TRẠNG THÁI DIỂM DANH");
 
         jPanel16.setBackground(new java.awt.Color(255, 255, 255));
 
         jLabel26.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel26.setText(">>>");
+
+        trangthaidiemdanh.setEditable(false);
 
         javax.swing.GroupLayout jPanel16Layout = new javax.swing.GroupLayout(jPanel16);
         jPanel16.setLayout(jPanel16Layout);
@@ -664,14 +715,14 @@ public class MenuFormAdmin extends javax.swing.JFrame {
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
-        jButton7.setText("BAT DAU DIEM DANH");
+        jButton7.setText("BẮT ĐẦU ĐIỂM DANH");
         jButton7.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jButton7ActionPerformed(evt);
             }
         });
 
-        jButton8.setText("DUNG CAMERA");
+        jButton8.setText("DỪNG CAMERA");
         jButton8.setEnabled(false);
         jButton8.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -712,20 +763,20 @@ public class MenuFormAdmin extends javax.swing.JFrame {
                 .addContainerGap(50, Short.MAX_VALUE))
         );
 
-        jTabbedPane3.addTab("Diem Danh", jPanel2);
+        jTabbedPane3.addTab("Điểm Danh", jPanel2);
 
         jPanel8.setBackground(new java.awt.Color(255, 255, 255));
 
         jPanel12.setBackground(new java.awt.Color(204, 204, 255));
 
         jLabel18.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel18.setText("Thong tin nguoi diem danh");
+        jLabel18.setText("Thông tin người điểm danh");
 
         jPanel13.setBackground(new java.awt.Color(255, 255, 255));
 
         jLabel19.setText("Họ Và Tên:");
 
-        jLabel20.setText("Ngày Sinh:");
+        jLabel20.setText("Ngày Sinh (yyyy-mm-dd):");
 
         jLabel21.setText("Giới Tính:");
 
@@ -776,6 +827,12 @@ public class MenuFormAdmin extends javax.swing.JFrame {
 
         jLabel34.setText("0/10");
 
+        jLabel28.setForeground(new java.awt.Color(255, 0, 0));
+        jLabel28.setText("*");
+
+        jLabel35.setForeground(new java.awt.Color(255, 0, 0));
+        jLabel35.setText("*");
+
         javax.swing.GroupLayout jPanel13Layout = new javax.swing.GroupLayout(jPanel13);
         jPanel13.setLayout(jPanel13Layout);
         jPanel13Layout.setHorizontalGroup(
@@ -791,16 +848,23 @@ public class MenuFormAdmin extends javax.swing.JFrame {
                         .addGroup(jPanel13Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addGroup(jPanel13Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
                                 .addComponent(jLabel25, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                .addComponent(jLabel23, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 110, Short.MAX_VALUE)
+                                .addComponent(jLabel23, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                                 .addComponent(jLabel24, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                                 .addComponent(jLabel21, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                                 .addComponent(jLabel20, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                .addComponent(jLabel19, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                            .addComponent(jLabel22, javax.swing.GroupLayout.PREFERRED_SIZE, 110, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel13Layout.createSequentialGroup()
+                                    .addComponent(jLabel35)
+                                    .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                    .addComponent(jLabel19, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                    .addGap(15, 15, 15)))
+                            .addGroup(jPanel13Layout.createSequentialGroup()
+                                .addComponent(jLabel28)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(jLabel22, javax.swing.GroupLayout.PREFERRED_SIZE, 110, javax.swing.GroupLayout.PREFERRED_SIZE))
                             .addComponent(jLabel29)
                             .addComponent(jLabel31)
                             .addComponent(jLabel30, javax.swing.GroupLayout.PREFERRED_SIZE, 110, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addGap(52, 52, 52)
                         .addGroup(jPanel13Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(jid)
                             .addComponent(jname)
@@ -808,7 +872,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
                             .addComponent(jgioitinh)
                             .addComponent(jnganh)
                             .addComponent(jkhoas)
-                            .addComponent(jkhoa, javax.swing.GroupLayout.DEFAULT_SIZE, 222, Short.MAX_VALUE)
+                            .addComponent(jkhoa, javax.swing.GroupLayout.DEFAULT_SIZE, 177, Short.MAX_VALUE)
                             .addGroup(jPanel13Layout.createSequentialGroup()
                                 .addGroup(jPanel13Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                                     .addComponent(jLabel32)
@@ -823,11 +887,13 @@ public class MenuFormAdmin extends javax.swing.JFrame {
                 .addGap(14, 14, 14)
                 .addGroup(jPanel13Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jid, javax.swing.GroupLayout.PREFERRED_SIZE, 40, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabel22, javax.swing.GroupLayout.PREFERRED_SIZE, 40, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(jLabel22, javax.swing.GroupLayout.PREFERRED_SIZE, 40, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel28))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(jPanel13Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jname, javax.swing.GroupLayout.PREFERRED_SIZE, 40, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabel19, javax.swing.GroupLayout.PREFERRED_SIZE, 40, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(jLabel19, javax.swing.GroupLayout.PREFERRED_SIZE, 40, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel35))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(jPanel13Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jngaysinh, javax.swing.GroupLayout.PREFERRED_SIZE, 40, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -928,7 +994,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
             .addGroup(jPanel8Layout.createSequentialGroup()
                 .addContainerGap()
                 .addComponent(jPanel12, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 26, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jPanel17, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jButton4, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 163, javax.swing.GroupLayout.PREFERRED_SIZE))
@@ -948,7 +1014,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
                 .addContainerGap())
         );
 
-        jTabbedPane3.addTab("Them Sinh Vien", jPanel8);
+        jTabbedPane3.addTab("Thêm Sinh Viên", jPanel8);
 
         jTable1.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
@@ -988,7 +1054,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
                 {null, null, null, null, null}
             },
             new String [] {
-                "Mã Sinh Viên", "Tên Sinh Viên", "Ngày Sinh", "Giới Tính", "Ngày Điểm Danh"
+                "Mã Sinh Viên", "Tên Sinh Viên", "Giới Tính", "Ngày Điểm Danh", "Thời Gian Điểm Danh"
             }
         ) {
             Class[] types = new Class [] {
@@ -1009,26 +1075,52 @@ public class MenuFormAdmin extends javax.swing.JFrame {
             }
         });
 
+        jTextField4.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jTextField4ActionPerformed(evt);
+            }
+        });
+
+        jButton1.setText("Tìm");
+        jButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton1ActionPerformed(evt);
+            }
+        });
+
+        jLabel27.setText("Nhập Mã Sinh Viên:");
+
         javax.swing.GroupLayout jPanel15Layout = new javax.swing.GroupLayout(jPanel15);
         jPanel15.setLayout(jPanel15Layout);
         jPanel15Layout.setHorizontalGroup(
             jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 1079, Short.MAX_VALUE)
+            .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 1115, Short.MAX_VALUE)
             .addGroup(jPanel15Layout.createSequentialGroup()
                 .addContainerGap()
                 .addComponent(dateChooserCombo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(167, 167, 167)
+                .addComponent(jLabel27)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(jTextField4, javax.swing.GroupLayout.PREFERRED_SIZE, 186, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 18, 18)
+                .addComponent(jButton1)
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         jPanel15Layout.setVerticalGroup(
             jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel15Layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(dateChooserCombo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(61, 61, 61)
-                .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 556, Short.MAX_VALUE))
+                .addGroup(jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(dateChooserCombo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGroup(jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                        .addComponent(jTextField4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(jButton1)
+                        .addComponent(jLabel27)))
+                .addGap(59, 59, 59)
+                .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 555, Short.MAX_VALUE))
         );
 
-        jTabbedPane3.addTab("Lich Su Diem Danh", jPanel15);
+        jTabbedPane3.addTab("Lịch Sử Điểm Danh", jPanel15);
 
         jMenu1.setText("File");
 
@@ -1108,7 +1200,10 @@ public class MenuFormAdmin extends javax.swing.JFrame {
     private void dateChooserComboOnCommit(datechooser.events.CommitEvent evt) {//GEN-FIRST:event_dateChooserComboOnCommit
         // TODO add your handling code here:
         Date currDate = dateChooserCombo.getSelectedDate().getTime();
+        jTextField4.setText("");
+        clearAttendanceTable();
         getAttendanceHistoryOfCurrentDate(currDate);
+        
     }//GEN-LAST:event_dateChooserComboOnCommit
 
     private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
@@ -1126,6 +1221,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
             jLabel33,
             jLabel34
         };
+        
         String studentId = null;
         try {
             FDA_Sinhvien student = getNewStudentInfo();
@@ -1168,43 +1264,11 @@ public class MenuFormAdmin extends javax.swing.JFrame {
     }//GEN-LAST:event_jButton9ActionPerformed
 
     private void jButton5ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton5ActionPerformed
-        // TODO add your handling code here:
-        //        FDA_Sinhvien s = new FDA_Sinhvien();
-        //        Control c = new Control();
-        //        s.setMssv(jid.getText());
-        //        s.setTensv(jname.getText());
-        //        try {
-            //            s.setNgaysinhsv(new SimpleDateFormat ("yyyy-MM-dd").parse(jngaysinh.getText()));
-            //        } catch (ParseException ex) {
-            //            Logger.getLogger(MenuFormAdmin1.class.getName()).log(Level.SEVERE, null, ex);
-            //        }
-        //        s.setGioitinh(jgioitinh.getText());
-        //        s.setNganh(jnganh.getText());
-        //        s.setKhoas(jkhoas.getText());
-        //        s.setKhoa(jkhoa.getText());
-        //        int opt=JOptionPane.showConfirmDialog(null, "Bạn chắc chắn muốn thêm sinh viên này ?", "XÁC NHẬN CẬP NHẬT", JOptionPane.YES_NO_OPTION);
-        //        if (opt == 0) {
-            //            if (jid.getText().length() == 0 || jname.getText().length() == 0 || jngaysinh.getText().length() == 0 || jgioitinh.getText().length() == 0 || jnganh.getText().length() == 0 || jkhoa.getText().length() == 0 || jkhoas.getText().length() == 0) {
-                //               JOptionPane.showMessageDialog(rootPane, "Các trường không được để trống !!!");
-                //            } else if (new Control().themSinhvien(s)) {
-                //                JOptionPane.showMessageDialog(rootPane, "Thêm sinh viên thành công !!!");
-                ////                try {
-                    ////                    Avatar a = new Avatar(jid.getText(), url);
-                    ////                    if( ! new Control().addImg(a)){
-                        ////                       System.out.print(jid.getText());
-                        ////                    }
-                    ////                } catch (Exception e){
-                    ////                    JOptionPane.showMessageDialog(null, e);
-                    ////                }
-                ////                menuAdmin.showListStaffAdmin();
-                ////                //System.out.println(menuAdmin != null);
-                //
-                //                //this.dispose();
-                //                }else {
-                //                JOptionPane.showMessageDialog(rootPane, "Thêm sinh viên thất bại. Mã số sinh viên đã tồn tại !!!");
-                //            }
-            //        }
-        
+        if(checkStudentInfoFullFill()) {
+            showMessage("ERROR", "Thông Tin Sinh Viên Chưa Đầy Đủ");
+            return;
+        }
+          
         try {
             newStudentList.add(getNewStudentInfo());
             if(insertStudentToDatabase(newStudentList.get(0))) {
@@ -1251,13 +1315,10 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         stopVideoStream = false;
         stopRecognize = false;
         frameList.clear();
-        videoStreamThread = new Thread(new CollecDataForRecognize((DrawImage)jPanel4));
+        videoStreamThread = new Thread(collecDataForRecognize);
         videoStreamThread.start();
-        if(serverResponseHanlderThread == null) {
-            System.out.println("is null");
-            serverResponseHanlderThread = new Thread(serverResponseHandler);
-            serverResponseHanlderThread.start();
-        }
+        serverResponseHanlderThread = new Thread(serverResponseHandler);
+        serverResponseHanlderThread.start();
     }//GEN-LAST:event_jButton7ActionPerformed
 
     private void name_svActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_name_svActionPerformed
@@ -1287,7 +1348,100 @@ public class MenuFormAdmin extends javax.swing.JFrame {
     private void jTextField1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jTextField1ActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_jTextField1ActionPerformed
-    
+
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+        // TODO add your handling code here:
+        Date currDate = dateChooserCombo.getSelectedDate().getTime();
+        String studentCode = jTextField4.getText();
+        if(!Utilities.isStudentCodeValid(studentCode)) {
+            showMessage("ERROR", "Mã sinh viên không hợp lệ");
+            return;
+        }
+        if(!getAttendanceHistoryOfCurrentDateAndStudentCode(studentCode, currDate)) {
+            showMessage("ERROR", "Sinh viên chưa điểm danh");
+        }
+    }//GEN-LAST:event_jButton1ActionPerformed
+
+    private void jTextField4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jTextField4ActionPerformed
+        // TODO add your handling code here:
+        Date currDate = dateChooserCombo.getSelectedDate().getTime();
+        String studentCode = jTextField4.getText();
+        if(!Utilities.isStudentCodeValid(studentCode)) {
+            showMessage("ERROR", "Mã sinh viên không hợp lệ");
+            return;
+        }
+        if(!getAttendanceHistoryOfCurrentDateAndStudentCode(studentCode, currDate)) {
+            showMessage("ERROR", "Sinh viên chưa điểm danh");
+        }
+    }//GEN-LAST:event_jTextField4ActionPerformed
+
+    private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
+        // TODO add your handling code here:
+        JFileChooser fc = new JFileChooser();
+        FileNameExtensionFilter filter = new FileNameExtensionFilter(
+            "JPG & PNG Images", "jpg", "png");
+        fc.setFileFilter(filter);
+        fc.showOpenDialog(this);
+        File f = fc.getSelectedFile();
+        if(f == null) {
+            return;
+        }
+        if(!f.exists()) {
+            return;
+        }
+        DrawImage drawImage = (DrawImage)jPanel10;
+        ImageIcon imageIcon = new ImageIcon(f.getAbsolutePath());
+        drawImage.drawImage(imageIcon.getImage());
+//        if(adminInfo.getAvatarPath() != null) {
+//            f = new File(adminInfo.getAvatarPath());
+//            if(f.exists()) {
+//                f.delete();
+//            }
+//        }
+        adminInfo.setAvatarPath(f.getAbsolutePath());  
+    }//GEN-LAST:event_jButton2ActionPerformed
+
+    private void jButton6ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton6ActionPerformed
+        // TODO add your handling code here:
+        FDA_Canbo admin = new FDA_Canbo();
+        admin.setTencb(jTextField1.getText());
+        try {
+            admin.setNgaysinh(simpleDateFormat.parse(jTextField2.getText()));
+        } catch (ParseException ex) {
+            ex.printStackTrace();
+            Logger.getLogger(MenuFormAdmin.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        admin.setGioitinh(jTextField3.getText());
+        admin.setMscb(adminInfo.getMscb());
+        admin.setKhoa(adminInfo.getKhoa());
+        admin.setBomon(adminInfo.getBomon());
+        
+        File f = new File(adminInfo.getAvatarPath());
+        
+        File newImagePath = new File(DEFAULT_IMAGE_PATH);
+        if(!newImagePath.exists()) {
+            newImagePath.mkdirs();
+        }
+        
+        newImagePath = new File(DEFAULT_IMAGE_PATH + FILE_PATH_SEPARATE + f.getName());
+        try {
+            Files.copy(f.toPath(), newImagePath.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException ex) {
+            ex.printStackTrace();
+            Logger.getLogger(MenuFormAdmin.class.getName()).log(Level.SEVERE, null, ex);
+            adminInfo = dataRepository.getCanBo(adminInfo.getMscb());
+            showAdminInfo(adminInfo);
+        }
+        
+        admin.setAvatarPath("images" + FILE_PATH_SEPARATE + "canbo" + FILE_PATH_SEPARATE + f.getName());
+        if(dataRepository.updateCanBo(admin)) {
+            showMessage("NOTIFICATION", "Cập nhật thành công");
+        } else {
+            
+        }
+        adminInfo = dataRepository.getCanBo(adminInfo.getMscb());
+        showAdminInfo(adminInfo);
+    }//GEN-LAST:event_jButton6ActionPerformed
     
     
     
@@ -1314,8 +1468,10 @@ public class MenuFormAdmin extends javax.swing.JFrame {
                         stopVideoStream = false;
                         break;
                     }
-                    
                     frameInMatType = captureCameraFrameUsingOpenCv2.captureFrame();
+                    if(frameInMatType.width() <= 0) {
+                        continue;
+                    }
                     frameInImageType = HighGui.toBufferedImage(frameInMatType);
                     if(!blockAddMoreFrame) {
                         if(frameList.size() >= DEFAULT_AMOUNT_OF_FRAME_STORED) {
@@ -1378,8 +1534,9 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         
     }
     
-    public void sendSignal(String signal) {
-        
+    public void sendSignal(String signal, BufferedWriter writer) throws IOException {
+        writer.write(signal);
+        writer.flush();
     }
     
     public void closeAllStream() throws IOException, SQLException{
@@ -1387,7 +1544,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         reader.close();
         writer.close();
         socket.close();
-        sinhVienRepository.closeConnection();
+        dataRepository.closeConnection();
         
     }
     
@@ -1398,17 +1555,15 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         private DrawImage drawImage;
        
         private Socket socket;
-        private String imageFolderPath;
         private BufferedReader reader;
         private BufferedWriter writer;
         private String faceAngle;
         private String faceId;
         
-        public CollectDataForTrain(Socket socket, DrawImage drawImage, JLabel label, int amountsOfImageNeedCollect, String imageFolderPath) {
+        public CollectDataForTrain(Socket socket, DrawImage drawImage, JLabel label, int amountsOfImageNeedCollect) {
             this.socket = socket;
             this.drawImage = drawImage;
             this.amountsOfImageNeedCollect = amountsOfImageNeedCollect;
-            this.imageFolderPath = imageFolderPath;
             this.label = label;
             try {
                 InputStreamReader streamReader = new InputStreamReader(socket.getInputStream());
@@ -1445,90 +1600,59 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         public void run() {
             Mat frame;
             Image image;
-            Image tempImage = null;
+            Image imageContainFace = null;
+            boolean delay = true;
             List<Image> frameList = new ArrayList<>(1);
-            captureCameraFrameUsingOpenCv2.openCamera(0);
+            
             jTabbedPane3.setEnabled(false);
             jButton9.setEnabled(false);
-            boolean delay = true;
+            
             try {
-                writer.write("DETECT\n");
-                writer.flush();
+                sendSignal("DETECT\n", writer);
                 if(!reader.readLine().equalsIgnoreCase("OK")) {
                     return;
                 }
-                writer.write(faceId + "\n");
-                writer.write(faceAngle + "\n");
-                writer.flush();
+                sendSignal(faceId + "\n" + faceAngle + "\n", writer);
                 if(!reader.readLine().equalsIgnoreCase("OK")) {
                     return;
                 }
+                captureCameraFrameUsingOpenCv2.openCamera(0);
+                //wait camera ready for capture frame
+                Thread.sleep(1000);
+                for(int i = 1; i <= amountsOfImageNeedCollect; i++) {
+                    i -= 1;
+                    image = captureCameraFrameUsingOpenCv2.captureImage();
+                    frameList.add(0, image);
+                    sendSignal("FRAME\n", writer);
+                    sendImageListToServer(frameList, writer);
+                    imageContainFace = waitImageResponseFromServer(reader);
+                    if(imageContainFace != null) {
+                        label.setText(i + "/" + amountsOfImageNeedCollect);
+                        image = imageContainFace;
+                    } else {
+                        i -= 1;
+                    }
+                    drawImage.drawImage(image);
+                }
+                sendSignal("EXIT\n", writer);
+            }catch(IOException ex) {
+                ex.printStackTrace();
+                socketConnectionErrorHandle();
             }catch(Exception ex) {
                 ex.printStackTrace();
-            }
-            
-            for(int i = 1; i <= amountsOfImageNeedCollect; i++) {
-                frameList.clear();
-                if(delay) {
-                    try {
-                        Thread.sleep(1000);
-                    }catch(Exception ex) {
-                        ex.printStackTrace();
-                    }
-                    delay = false;
-                    i -= 1;
-                    continue;
+            } finally{
+                captureCameraFrameUsingOpenCv2.releaseCamera();
+                jButton4.setEnabled(true);
+                jTabbedPane3.setEnabled(true);
+                jButton9.setEnabled(true);
+                if(labelIndex == DEFAULT_FACE_ANGLES.length){
+                    jButton5.setEnabled(true);
+                    jButton4.setEnabled(false);
                 }
-                frame = captureCameraFrameUsingOpenCv2.captureFrame();
-                image = HighGui.toBufferedImage(frame);
-                frameList.add(image);
-                try {
-                    writer.write("FRAME\n");
-                    writer.flush();
-                    sendImageListToServer(frameList, writer);
-                    tempImage = waitResultImageResponseFromServer(reader);
-//                    saveImageToFile(image, imagePath + i + ".jpg");
-                } catch(Exception ex) {
-                    ex.printStackTrace();
-                }
-                if(tempImage != null) {
-                    label.setText(i + "/" + amountsOfImageNeedCollect);
-                    image = tempImage;
-                } else {
-                    i -= 1;
-                }
-                drawImage.drawImage(image);
-            }
-            try {
-                writer.write("EXIT\n");
-                writer.flush();
-            } catch(Exception ex) {
-                ex.printStackTrace();
-            }
-            captureCameraFrameUsingOpenCv2.releaseCamera();
-            jButton4.setEnabled(true);
-            jTabbedPane3.setEnabled(true);
-            jButton9.setEnabled(true);
-            if(faceAngle.equalsIgnoreCase(DEFAULT_FACE_ANGLES[2])){
-                jButton5.setEnabled(true);
-                jButton4.setEnabled(false);
             }
         }
     }
     
-    public void showAdminInfo(FDA_Canbo admin){
-        FDA_Canbo cb = null;
-        //String image_url=c.getimage(i);
-//        cb = sinhVienRepository.getCanBo(i);
-        cb = admin;
-        jTextField1.setText(cb.getMscb());
-        jTextField2.setText(cb.getTencb());
-        jTextField3.setText(cb.getNgaysinh().toString());
-        jTextField11.setText(cb.getGioitinh());
-        jTextField12.setText(cb.getBomon());
-        jTextField13.setText(cb.getKhoa());
-        //draw_Image(image_url);
-    }
     
     public boolean deleteTrainImageOnServer(String faceId) throws IOException {
         String signal;
@@ -1545,73 +1669,33 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         return signal.equalsIgnoreCase("success");
     }
 
-    
-    
-    public void showStudentInfo(String sinhVienId){
-        FDA_Sinhvien s = new FDA_Sinhvien();
-        s = sinhVienRepository.getSinhVien(sinhVienId);
-        if(s == null) {
-            return;
-        }
-        name_sv.setText(s.getTensv());
-        ngaysinh.setText(s.getNgaysinhsv().toString());
-        gioitinh.setText(s.getGioitinh());
-        mssv.setText(s.getMssv());
-        nganh.setText(s.getNganh());
-        khoa.setText(s.getKhoa());
-        khoas.setText(s.getKhoas());
-        trangthaidiemdanh.setText("DA DIEM DANH");
-        
-    }
-    
-    public Image waitResultImageResponseFromServer(BufferedReader reader) throws IOException {
+    public Image waitImageResponseFromServer(BufferedReader reader) throws IOException {
         String signal = "";
-        byte[] imageData;
         Image resultImage = null;
-        String encodedFile;
+        
         signal = reader.readLine();
+        
         if(signal.equalsIgnoreCase("FAILURE")) {
             return null;
         }
         if(signal.equalsIgnoreCase("IMAGE")) {
             signal = reader.readLine();
-            encodedFile = signal;
-            imageData = Base64.getDecoder().decode(encodedFile);  
+            byte[] imageData = Base64.getDecoder().decode(signal);  
             resultImage = ImageIO.read(new ByteArrayInputStream(imageData));
         }
         return resultImage;
     }
     
-
-    
-    public List<Image> loadImageFromFile(String imageFolderPath) throws IOException {
-        File f = new File(imageFolderPath);
-        List<Image> result = new ArrayList<>();
-        Image bufferredImage;
-        for(File image : f.listFiles()) {
-            if(image.isFile()) {
-                bufferredImage = ImageIO.read(image);
-                result.add(bufferredImage);
-            }
-
-        } 
-        return result;
-    }
-    
-    public boolean sendImageToServer(Image image, BufferedWriter writer) throws IOException {
-        BufferedImage bufferedImage;
-        String encodedfile;
-        bufferedImage = (BufferedImage)image;
+    public void sendImageToServer(Image image, BufferedWriter writer) throws IOException {
+        BufferedImage bufferedImage = (BufferedImage)image;
         ByteArrayOutputStream b = new ByteArrayOutputStream();
         ImageIO.write(bufferedImage, "jpg", b);
         byte[] imgData = b.toByteArray();
         System.out.println(imgData.length);
-        encodedfile = new String(Base64.getEncoder().encode(imgData), "UTF-8");
-//        System.out.println(encodedfile.length());
+        String encodedfile = new String(Base64.getEncoder().encode(imgData), "UTF-8");
         writer.write(encodedfile);
         writer.flush();
         socket.getOutputStream().write(END_OF_FRAME);
-        return true;
     }
     
     public void sendImageListToServer(List<Image> imageList, BufferedWriter writer) throws IOException {
@@ -1621,38 +1705,6 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         socket.getOutputStream().write(END_OF_FRAME_LIST);
     }
     
-    
-    
-    public void sendImageToServerToTrain(BufferedReader reader, BufferedWriter writer) throws IOException {
-        String signal;
-        File imageForTrainDirectory = new File(CURRENT_WORKING_DIR + FILE_PATH_SEPARATE + "ImageForTrain");
-        List<Image> imageList;
-        
-        for(FDA_Sinhvien sinhvien : newStudentList) {
-            writer.write("TRAIN\n");
-            writer.flush();
-            while((signal = reader.readLine()) != null) {
-                if(signal.equalsIgnoreCase("OK")) {
-                    writer.write(sinhvien.getMssv() + "\n");
-                    writer.flush();
-                    System.out.println("Write MSSV complete");
-                    imageList = loadImageFromFile(imageForTrainDirectory + FILE_PATH_SEPARATE + sinhvien.getMssv());
-                    System.out.println("Read image complete");
-                    sendImageListToServer(imageList, writer);
-                }
-                if(signal.equalsIgnoreCase("DONE")) {
-                    System.out.println(signal);
-                    break;
-                }
-            }
-        }
-        writer.write("EXIT\n");
-        writer.flush();
-        newStudentList.clear();
-        clearNewStudentInfoFill();
-        System.out.println("SEND_DATA_FOR_TRAIN_SUCCESS");
-
-    }
     
     public class ServerResponseHandler implements Runnable {
         private Socket socket;
@@ -1675,72 +1727,42 @@ public class MenuFormAdmin extends javax.swing.JFrame {
             }
         }
 
-        public boolean sendFrameToServer(Mat frame) throws IOException {
-            BufferedImage bufferedImage;
-            byte[] inputData;
-            String encodedfile;
-            bufferedImage = (BufferedImage)HighGui.toBufferedImage(frame);
-            ByteArrayOutputStream b = new ByteArrayOutputStream();
-            ImageIO.write(bufferedImage, "jpg", b);
-            inputData = b.toByteArray();
-//            System.out.println(inputData.length);
-            encodedfile = new String(Base64.getEncoder().encode(inputData), "UTF-8");
-            writer.write(encodedfile);
-            writer.flush();
-            socket.getOutputStream().write(END_OF_FRAME);
-            return true;
-        }
+//        public void sendFrameToServer(Mat frame) throws IOException {
+//            BufferedImage bufferedImage;
+//            byte[] inputData;
+//            String encodedfile;
+//            bufferedImage = (BufferedImage)HighGui.toBufferedImage(frame);
+//            ByteArrayOutputStream b = new ByteArrayOutputStream();
+//            ImageIO.write(bufferedImage, "jpg", b);
+//            inputData = b.toByteArray();
+////            System.out.println(inputData.length);
+//            encodedfile = new String(Base64.getEncoder().encode(inputData), "UTF-8");
+//            writer.write(encodedfile);
+//            writer.flush();
+//            socket.getOutputStream().write(END_OF_FRAME);
+//        }
 
-        public boolean sendListOfFrameToServer(List<Mat> frameList) throws IOException {
-            for(Mat frame : frameList) {
-                if(!sendFrameToServer(frame)) {
-                    return false;
-                }
-            }
-            socket.getOutputStream().write(END_OF_FRAME_LIST);
-            return true;
-        }
+//        public void sendListOfFrameToServer(List<Mat> frameList) throws IOException {
+//            for(Mat frame : frameList) {
+//                sendFrameToServer(frame);
+//            }
+//            socket.getOutputStream().write(END_OF_FRAME_LIST);
+//        }
       
-        public void closeAllStream() throws IOException{
-            System.out.println("Close all stream");
-            reader.close();
-            writer.close();
-        }
+//        public void closeAllStream() throws IOException{
+//            System.out.println("Close all stream");
+//            reader.close();
+//            writer.close();
+//        }
         
         public byte[] handleResponseContainBase64EncodedImage() throws IOException, InterruptedException {
-//            String temp;
-            String encodedFile;
-//            encodedFile = "";
-//            while((temp = reader.readLine()) != null) {
-//                if(temp.equalsIgnoreCase("DONE")) {
-//                    break;
-//                }
-//                if(temp.length() > 0) {
-//                    encodedFile += temp;
-//                }
-//            }
-            encodedFile = reader.readLine();
-            System.out.println(encodedFile.length());
+            String encodedFile = reader.readLine();
+            System.out.println("Image received: " + encodedFile.length());
             if(encodedFile.length() < 0) {
                 return null;
             }
             return Base64.getDecoder().decode(encodedFile);
         }
-        
-        
-        public String handleResponseContainString() throws IOException, InterruptedException {
-            String temp;
-            String responseString = "";
-            while((temp = reader.readLine()) != null) {
-                if(temp.equalsIgnoreCase("DONE")) {
-                    break;
-                }
-                System.out.println(temp);
-                responseString += temp;
-            }
-            return responseString;
-        }
-        
         
         public void handleSuccessSignal() throws IOException, InterruptedException, ParseException {
             String signal;
@@ -1748,19 +1770,19 @@ public class MenuFormAdmin extends javax.swing.JFrame {
             String studentID = "";
             byte[] imageData;
             while((signal = reader.readLine()) != null) {
+                System.out.println(signal);
                 if(signal.equalsIgnoreCase("image")) {
-                    System.out.println(signal);
                     imageData = handleResponseContainBase64EncodedImage();  
                     bufferedImage = ImageIO.read(new ByteArrayInputStream(imageData));
                 } else if(signal.equalsIgnoreCase("info")) {
                     studentID = reader.readLine();
+                    if(stopRecognize) {
+                        return;
+                    }
                     synchronized (LOCK_VIDEOSTREAM_THREAD) {
                         //waiting video stream thread locked
                         Thread.sleep(100);
                         System.out.println("video stream blocked");
-                        if(stopRecognize) {
-                            return;
-                        }
                         drawFramePanel.drawImage(bufferedImage);
                         showStudentInfo(studentID);
                         writeHistory();
@@ -1781,6 +1803,9 @@ public class MenuFormAdmin extends javax.swing.JFrame {
             System.out.println("start");
             try {
                 while(true) {
+                    if(stopRecognize) {
+                        return;
+                    }
                     writer.write("RECOGNIZE\n");
                     writer.flush();
                     while((signal = reader.readLine()) != null) {
@@ -1788,12 +1813,9 @@ public class MenuFormAdmin extends javax.swing.JFrame {
                         if(signal.equalsIgnoreCase("ok")) {
                             while(frameList.size() < DEFAULT_AMOUNT_OF_FRAME_STORED) {
                                 if(stopRecognize) {
-                                    jButton7.setEnabled(false);
-                                    System.out.println("?????");
+                                    System.out.println("Stop listen server response");
                                     frameList.clear();
                                     sendImageListToServer(frameList, writer);
-                                    serverResponseHanlderThread = null;
-                                    jButton7.setEnabled(true);
                                     return;
                                 }
                                 Thread.sleep(100);
@@ -1818,7 +1840,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
                 }
             } catch(SocketException ex) {
                 ex.printStackTrace();
-                socketConnectionResetHandle();
+                socketConnectionErrorHandle();
                 
             } catch(Exception ex) {
                 ex.printStackTrace();
@@ -1832,42 +1854,82 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         if(student == null) {
             throw new IllegalArgumentException("ERROR: Student is null!!");
         }
-        
-        return true;
+        if(dataRepository.getSinhVien(student.getMssv()) != null) {
+            return true;
+        }
+        return dataRepository.themSinhvien(student);
     }
     
-    private void socketConnectionResetHandle() {
-        if(showMessage("YesNo", "Kết nối tới Server bị lỗi! Kết nối lại!")) {
-            try {
-                socket = connectToServer(SEVER_IP, SEVER_PORT);
-            } catch(Exception ex) {
-                ex.printStackTrace();
-                showMessage("ERROR", "Không thể kết nối tới server! Đóng ứng dụng");
-                this.dispose();
-                System.exit(0);
-            }
-        } else {
-            this.dispose();
-            System.exit(0);
+    private void showStudentInfo(String sinhVienId){
+        FDA_Sinhvien s = new FDA_Sinhvien();
+        s = dataRepository.getSinhVien(sinhVienId);
+        if(s == null) {
+            return;
         }
+        name_sv.setText(s.getTensv());
+        ngaysinh.setText(s.getNgaysinhsv().toString());
+        gioitinh.setText(s.getGioitinh());
+        mssv.setText(s.getMssv());
+        nganh.setText(s.getNganh());
+        khoa.setText(s.getKhoa());
+        khoas.setText(s.getKhoas());
+        trangthaidiemdanh.setText("DA DIEM DANH");
+        
+    }
+    
+    private void showAdminInfo(FDA_Canbo admin){
+        FDA_Canbo cb = null;
+        //String image_url=c.getimage(i);
+//        cb = sinhVienRepository.getCanBo(i);
+        cb = admin;
+        jTextField1.setText(cb.getTencb());
+        jTextField2.setText(cb.getNgaysinh().toString());
+        jTextField3.setText(cb.getGioitinh());
+        jTextField11.setText(cb.getMscb());
+        jTextField12.setText(cb.getKhoa());
+        jTextField13.setText(cb.getBomon());
+        if(cb.getAvatarPath() != null){
+            DrawImage drawImage = (DrawImage)jPanel10;
+            ImageIcon imageIcon = new ImageIcon(cb.getAvatarPath());
+            drawImage.drawImage(imageIcon.getImage());
+        }
+        //draw_Image(image_url);
     }
     
     
     private FDA_Sinhvien getNewStudentInfo() throws ParseException {
-//        if(!checkStudentInfoFullFill()) {
-//            return null;
-//        }
-//        return new FDA_Sinhvien(
-//            jid.getText(),
-//            jname.getText(),
-//            simpleDateFormat.parse(jngaysinh.getText()),
-//            jgioitinh.getText(),
-//            jnganh.getText(),
-//            jkhoas.getText(),
-//            jkhoa.getText()
-//        );
+        if(!checkStudentInfoFullFill()) {
+            return null;
+        }
+        String dob = jngaysinh.getText();
+        if(dob.length() == 0) {
+            dob = "0001-01-01";
+        }
         
-        return new FDA_Sinhvien(jid.getText());
+        JTextField[] jTextFields = new JTextField[]{
+            jgioitinh,
+            jnganh,
+            jkhoas,
+            jkhoa
+        };
+        
+        for(JTextField textField : jTextFields) {
+            if(textField.getText().length() == 0) {
+                textField.setText("Unknow");
+            }
+        }
+        
+        return new FDA_Sinhvien(
+            jid.getText(),
+            jname.getText(),
+            simpleDateFormat.parse(dob),
+            jgioitinh.getText(),
+            jnganh.getText(),
+            jkhoas.getText(),
+            jkhoa.getText()
+        );
+        
+//        return new FDA_Sinhvien(jid.getText());
     }
     
     
@@ -1876,30 +1938,45 @@ public class MenuFormAdmin extends javax.swing.JFrame {
     }
     
     
-    public void getAttendanceHistoryOfCurrentDate(Date currentDate) {
-        attendedStudentList = sinhVienRepository.doclichsu(currentDate);
-        if(attendedStudentList.isEmpty()) {
-            return;
-        }
-        System.out.print(attendedStudentList.size());
+    public void updateAttendanceTable(List<FDA_Lichsudiemdanh> attendedStudentList) {
+        clearAttendanceTable();
         DefaultTableModel model=(DefaultTableModel) jTable1.getModel();
         model.setRowCount(0);
         Object[] row = new Object[5];
         for(int i=0; i< attendedStudentList.size(); i++ ){
             row[0] = attendedStudentList.get(i).getMssv();
             row[1] = attendedStudentList.get(i).getTensv();
-            row[2] = attendedStudentList.get(i).getNgaysinhsv();
-            row[3] = attendedStudentList.get(i).getGioitinh();
-            row[4] = attendedStudentList.get(i).getNgaydiemdanh();
+            row[2] = attendedStudentList.get(i).getGioitinh();
+            row[3] = attendedStudentList.get(i).getNgaydiemdanh();
+            row[4] = attendedStudentList.get(i).getThoiGianDiemDanh();
             model.addRow(row);
         }
+    }
+    
+    public void getAttendanceHistoryOfCurrentDate(Date currentDate) {
+        attendedStudentList = dataRepository.doclichsu(currentDate);
+        if(attendedStudentList.isEmpty()) {
+            return;
+        }
+        System.out.print(attendedStudentList.size());
+        updateAttendanceTable(attendedStudentList);
+    }
+    
+    public boolean getAttendanceHistoryOfCurrentDateAndStudentCode(String studentCode, Date currentDate) {
+        attendedStudentList = dataRepository.doclichsutheomssv(studentCode, currentDate);
+        if(attendedStudentList.isEmpty()) {
+            return false;
+        }
+        System.out.print(attendedStudentList.size());
+        updateAttendanceTable(attendedStudentList);
+        return true;
     }
     
     public void writeHistory() throws ParseException {
         FDA_Lichsudiemdanh lichsudiemdanh = new FDA_Lichsudiemdanh();
         lichsudiemdanh.setMssv(mssv.getText());
         lichsudiemdanh.setNgaydiemdanh(new Date());
-        sinhVienRepository.ghilichsu(lichsudiemdanh);
+        dataRepository.ghilichsu(lichsudiemdanh);
     }
     
     public void clearTextField() {
@@ -1921,14 +1998,19 @@ public class MenuFormAdmin extends javax.swing.JFrame {
     }
     
     private boolean checkStudentInfoFullFill() {
+//        JTextField[] jTextFields = new JTextField[]{
+//            jid,
+//            jname,
+//            jngaysinh,
+//            jgioitinh,
+//            jnganh,
+//            jkhoas,
+//            jkhoa};
+        
         JTextField[] jTextFields = new JTextField[]{
             jid,
-            jname,
-            jngaysinh,
-            jgioitinh,
-            jnganh,
-            jkhoas,
-            jkhoa};
+            jname};
+        
         for(JTextField jTextField : jTextFields) {
             if(jTextField.getText().length() == 0) {
                 return false;
@@ -1962,6 +2044,44 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         jPanel17.repaint();
     }
     
+    private void clearAttendanceTable() {
+        DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
+        model.setRowCount(0);
+    }
+    
+    private void socketConnectionErrorHandle() {
+        while(true) {  
+            if(showMessage("YesNo", "Kết nối tới Server bị lỗi! Kết nối lại!")) {
+                try {
+                    socket = connectToServer(SEVER_IP, SEVER_PORT);
+                } catch(Exception ex) {
+                    ex.printStackTrace();
+                }
+            } else {
+                this.dispose();
+                System.exit(0);
+            }
+        }
+
+        
+    }
+    
+    private void dataBaseConnectionErrorHandle() {
+        while(true) {
+            if(showMessage("YesNo", "Kết nối tới Database bị lỗi! Kết nối lại!")) {
+                try {
+                    dataRepository = new Control();
+                    break;
+                } catch(Exception ex) {
+                    ex.printStackTrace();
+                }
+            } else {
+                this.dispose();
+                System.exit(0);
+            }
+        }
+    }
+    
     
     
     private boolean showMessage(String messageType, String title) {
@@ -1980,7 +2100,9 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         } 
         if(messageType.equals("YesNo")) {
             if(title != null) {
-               return 0 == JOptionPane.showConfirmDialog(this, title, "Lựa chọn", JOptionPane.YES_NO_OPTION);
+                int userChoice = JOptionPane.showConfirmDialog(this, title, "Lựa chọn", JOptionPane.YES_NO_OPTION);
+//                System.out.println(userChoice);
+                return userChoice == 0;
             }
         }
         return true;
@@ -2035,6 +2157,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
     private javax.swing.JButton jButton3;
     private javax.swing.JButton jButton4;
     private javax.swing.JButton jButton5;
+    private javax.swing.JButton jButton6;
     private javax.swing.JButton jButton7;
     private javax.swing.JButton jButton8;
     private javax.swing.JButton jButton9;
@@ -2058,6 +2181,8 @@ public class MenuFormAdmin extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel24;
     private javax.swing.JLabel jLabel25;
     private javax.swing.JLabel jLabel26;
+    private javax.swing.JLabel jLabel27;
+    private javax.swing.JLabel jLabel28;
     private javax.swing.JLabel jLabel29;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel30;
@@ -2065,6 +2190,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel32;
     private javax.swing.JLabel jLabel33;
     private javax.swing.JLabel jLabel34;
+    private javax.swing.JLabel jLabel35;
     private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel jLabel6;
@@ -2102,6 +2228,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
     private javax.swing.JTextField jTextField13;
     private javax.swing.JTextField jTextField2;
     private javax.swing.JTextField jTextField3;
+    private javax.swing.JTextField jTextField4;
     private javax.swing.JTextField jgioitinh;
     private javax.swing.JTextField jid;
     private javax.swing.JTextField jkhoa;
