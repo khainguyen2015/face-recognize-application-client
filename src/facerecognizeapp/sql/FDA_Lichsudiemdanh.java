@@ -50,8 +50,6 @@ public class FDA_Lichsudiemdanh {
         this.thoiGianDiemDanh = thoiGianDiemDanh;
     }
 
-    
-
     public Date getNgaydiemdanh() {
         return ngaydiemdanh;
     }

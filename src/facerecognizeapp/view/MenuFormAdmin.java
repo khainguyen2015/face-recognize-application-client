@@ -46,9 +46,11 @@ import facerecognizeapp.sql.Control;
 import facerecognizeapp.sql.FDA_Sinhvien;
 import facerecognizeapp.sql.FDA_Lichsudiemdanh;
 import facerecognizeapp.sql.FDA_Canbo;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
+import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.ImageIcon;
@@ -69,7 +71,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
     /**
      * Creates new form MenuForm
      */
-    private static final int DEFAULT_AMOUNT_OF_FRAME_STORED = 3;
+    private static final int DEFAULT_AMOUNT_OF_FRAME_STORED = 1;
     private static final int DEFAULT_AMOUNT_OF_FRAME_COLLECT = 100;
     private static final String[] DEFAULT_FACE_ANGLES = new String[] {"font_face"};
     private static final int END_OF_FRAME = -1;
@@ -78,8 +80,8 @@ public class MenuFormAdmin extends javax.swing.JFrame {
     private static final String FILE_PATH_SEPARATE = System.getProperty("file.separator");
     private static final String DEFAULT_IMAGE_PATH = CURRENT_WORKING_DIR + FILE_PATH_SEPARATE + "images" + FILE_PATH_SEPARATE + "canbo";
     private static final Object LOCK_VIDEOSTREAM_THREAD = new Object();
-    private static final String SEVER_IP = "localhost";
-    private static final int SEVER_PORT = 5555;
+    private static String SEVER_IP = "localhost";
+    private static int SEVER_PORT = 5555;
     
     private boolean stopVideoStream = false;
     private boolean blockAddMoreFrame;
@@ -114,7 +116,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
             ex.printStackTrace();
             System.out.println("Can't connect to DataBase");
             dataBaseConnectionErrorHandle();
-        } catch(Exception ex) {
+        } catch(IOException ex) {
             ex.printStackTrace();
         } 
         initComponents();
@@ -124,7 +126,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         collecDataForTrain = new CollectDataForTrain(socket, null, null, DEFAULT_AMOUNT_OF_FRAME_COLLECT);
     }
     
-    public MenuFormAdmin(String adminId, Privilege privilege) {
+    public MenuFormAdmin(String userId, Privilege privilege) {
         setLookAndFeel();
         try {
             prepareBeforeExecution();
@@ -136,7 +138,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
             ex.printStackTrace();
         } 
         initComponents();
-        adminInfo = dataRepository.getCanBo(adminId);
+        adminInfo = dataRepository.getCanBo(userId);
         showAdminInfo(adminInfo);
         DrawImage drawFramePanel = (DrawImage)jPanel4;
         serverResponseHandler = new ServerResponseHandler(socket, drawFramePanel);
@@ -151,13 +153,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
     private void setLookAndFeel() {
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(MenuFormAdmin.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(MenuFormAdmin.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(MenuFormAdmin.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | javax.swing.UnsupportedLookAndFeelException ex) {
             java.util.logging.Logger.getLogger(MenuFormAdmin.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
     }
@@ -179,8 +175,13 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         writer = new BufferedWriter(streamWriter);
     }
     
-    private void prepareBeforeExecution() throws IOException, SQLException{
+    private void prepareBeforeExecution() throws IOException, SQLException{    
         try {
+            Properties prop = new Properties();
+            InputStream input = getClass().getClassLoader().getResourceAsStream("resources/socket.properties"); 
+            prop.load(input);
+            SEVER_IP = prop.getProperty("server.ip");
+            SEVER_PORT = Integer.valueOf(prop.getProperty("server.port"));       
             socket = connectToServer(SEVER_IP, SEVER_PORT);
         } catch(ConnectException ex) {
             System.out.println("Can't connect to sever");
@@ -192,8 +193,6 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         dataRepository = new Control();
         newStudentList = new ArrayList<>(1);
         captureCameraFrameUsingOpenCv2 = new CaptureCameraFrameUsingOpenCv2();
-        
-        
     }
     
     /**
@@ -1151,22 +1150,13 @@ public class MenuFormAdmin extends javax.swing.JFrame {
             stopVideoStream = true;
             stopRecognize = true;
             clearTextField();
-            try {
-                //            serverResponseHanlderThread.interrupt();
-                //            serverResponseHanlderThread = null;
-                //            thread.interrupt();
-            } catch(Exception ex) {
-                ex.printStackTrace();
-            }
         }
-
         if(jTabbedPane3.getSelectedIndex() != 2) {
             newStudentList.clear();
             clearNewStudentInfoFill();
             labelIndex = 0;
+            jButton4.setEnabled(true);
         }
-//        attendance
-     
         int a = jTabbedPane3.indexOfTab("Lịch Sử Điểm Danh");
         if(jTabbedPane3.getSelectedIndex() == a) {
             Date currDate = dateChooserCombo.getSelectedDate().getTime();
@@ -1187,13 +1177,9 @@ public class MenuFormAdmin extends javax.swing.JFrame {
     private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
         // TODO add your handling code here:
         if(!isStudentInfoFullFill()) {
+            showMessage("ERROR", "Thông Tin Sinh Viên Chưa Đầy Đủ");
             return;
         }
-//        String imageForTrainFolderPath = CURRENT_WORKING_DIR + FILE_PATH_SEPARATE + "ImageForTrain";
-//        File f = new File(imageForTrainFolderPath);
-//        if(!f.exists()) {
-//            f.mkdir();
-//        }
         JLabel[] labels = new JLabel[] {
             jLabel32,
         };
@@ -1224,43 +1210,38 @@ public class MenuFormAdmin extends javax.swing.JFrame {
 
     private void jButton9ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton9ActionPerformed
         // TODO add your handling code here:
-//        try {
-//            if(deleteTrainImageOnServer(jid.getText())){
-//                showMessage("NOTIFICATION", "Xóa thành công");
-//            }else {
-//                showMessage("ERROR", "Xóa thất bại");
-//            }
-//        }catch(IOException ex) {
-//            showMessage("ERROR", "ERROR OCCURED!");
-//            ex.printStackTrace();
-//        }
         newStudentList.clear();
         clearNewStudentInfoFill();
         showMessage("NOTIFICATION", "Xóa thành công");
     }//GEN-LAST:event_jButton9ActionPerformed
 
     private void jButton5ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton5ActionPerformed
-        if(!checkStudentInfoFullFill()) {
+        if(!isStudentInfoFullFill()) {
             showMessage("ERROR", "Thông Tin Sinh Viên Chưa Đầy Đủ");
             return;
         }
-          
+
         try {
-            newStudentList.add(getNewStudentInfo());
+            FDA_Sinhvien student = getNewStudentInfo();
+            if(student == null) {
+                throw new NullPointerException();
+            }
+            newStudentList.add(student);
             if(insertStudentToDatabase(newStudentList.get(0))) {
                 showMessage("NOTIFICATION", "Lưu dữ liệu thành công");
             } else {
                 showMessage("NOTIFICATION", "Lưu dữ liệu thất bại");
             }
-//            sendImageToServerToTrain(reader, writer);
         } catch(Exception ex) {
             ex.printStackTrace();
+        } finally {
+            newStudentList.clear();
+            clearNewStudentInfoFill();
+            jButton5.setEnabled(false);
+            jButton4.setEnabled(true);
+            labelIndex = 0;
         }
-        newStudentList.clear();
-        clearNewStudentInfoFill();
-        jButton5.setEnabled(false);
-        jButton4.setEnabled(true);
-        labelIndex = 0;
+        
     }//GEN-LAST:event_jButton5ActionPerformed
 
     private void jnameActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jnameActionPerformed
@@ -1276,7 +1257,6 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         captureCameraFrameUsingOpenCv2.releaseCamera();
         stopVideoStream = true;
         stopRecognize = true;
-//        serverResponseHanlderThread = null;
         clearTextField();
         jButton7.setEnabled(true);
         jButton8.setEnabled(false);
@@ -1303,12 +1283,6 @@ public class MenuFormAdmin extends javax.swing.JFrame {
 
     private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
         // TODO add your handling code here:
-        //        int opt=JOptionPane.showConfirmDialog(null, "Bạn muốn đăng xuất ?", "LOGOUT", JOptionPane.YES_NO_OPTION);
-        //        if( opt==0){
-            //            new LoginForm().setVisible(true);
-            //            this.dispose();
-            //        }
-
         boolean isLogout = showMessage("YesNo", "Bạn muốn đăng xuất ?");
         if(isLogout) {
             try {
@@ -1368,12 +1342,6 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         DrawImage drawImage = (DrawImage)jPanel10;
         ImageIcon imageIcon = new ImageIcon(f.getAbsolutePath());
         drawImage.drawImage(imageIcon.getImage());
-//        if(adminInfo.getAvatarPath() != null) {
-//            f = new File(adminInfo.getAvatarPath());
-//            if(f.exists()) {
-//                f.delete();
-//            }
-//        }
         adminInfo.setAvatarPath(f.getAbsolutePath());  
     }//GEN-LAST:event_jButton2ActionPerformed
 
@@ -1485,31 +1453,6 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         return saveImageToFile(imageData, imagePath);
     }
     
-    public boolean isStudentInfoFullFill() {
-        JTextField[] jTextFields = new JTextField[]{
-            jid,
-            jname,
-            jngaysinh,
-            jgioitinh,
-            jnganh,
-            jkhoas,
-            jkhoa};
-        String studentId = jTextFields[0].getText();
-//        for(JTextField jTextField : jTextFields) {
-//            if(jTextField.getText().length() == 0) {
-//                showMessage("ERROR", "Thông Tin Sinh Viên Chưa Điền Đầy Đủ");
-//                return false;
-//            }
-//        }
-        
-        if((studentId != null) && (studentId.length() > 0)) {
-            return true;
-        }
-        showMessage("ERROR", "Thông Tin Sinh Viên Chưa Điền Đầy Đủ");
-        return false;
-        
-    }
-    
     public void sendSignal(String signal, BufferedWriter writer) throws IOException {
         writer.write(signal);
         writer.flush();
@@ -1596,8 +1539,6 @@ public class MenuFormAdmin extends javax.swing.JFrame {
                 //wait camera ready for capture frame
                 Thread.sleep(1000);
                 for(int i = 1; i <= amountsOfImageNeedCollect; i++) {
-//                    System.out.println("send");
-//                    /i -= 1;
                     frameList.clear();
                     image = captureCameraFrameUsingOpenCv2.captureImage();
                     frameList.add(image);
@@ -1705,34 +1646,6 @@ public class MenuFormAdmin extends javax.swing.JFrame {
                 System.out.println("Can't connect to sever");
             }
         }
-
-//        public void sendFrameToServer(Mat frame) throws IOException {
-//            BufferedImage bufferedImage;
-//            byte[] inputData;
-//            String encodedfile;
-//            bufferedImage = (BufferedImage)HighGui.toBufferedImage(frame);
-//            ByteArrayOutputStream b = new ByteArrayOutputStream();
-//            ImageIO.write(bufferedImage, "jpg", b);
-//            inputData = b.toByteArray();
-////            System.out.println(inputData.length);
-//            encodedfile = new String(Base64.getEncoder().encode(inputData), "UTF-8");
-//            writer.write(encodedfile);
-//            writer.flush();
-//            socket.getOutputStream().write(END_OF_FRAME);
-//        }
-
-//        public void sendListOfFrameToServer(List<Mat> frameList) throws IOException {
-//            for(Mat frame : frameList) {
-//                sendFrameToServer(frame);
-//            }
-//            socket.getOutputStream().write(END_OF_FRAME_LIST);
-//        }
-      
-//        public void closeAllStream() throws IOException{
-//            System.out.println("Close all stream");
-//            reader.close();
-//            writer.close();
-//        }
         
         public byte[] handleResponseContainBase64EncodedImage() throws IOException, InterruptedException {
             String encodedFile = reader.readLine();
@@ -1758,12 +1671,16 @@ public class MenuFormAdmin extends javax.swing.JFrame {
                     if(stopRecognize) {
                         return;
                     }
+                    if(studentID.equalsIgnoreCase("unknown")) {
+                        frameList.clear();
+                        break;
+                    }
                     synchronized (LOCK_VIDEOSTREAM_THREAD) {
                         //waiting video stream thread locked
                         Thread.sleep(100);
                         System.out.println("video stream blocked");
                         drawFramePanel.drawImage(bufferedImage);
-                        if(!studentID.equalsIgnoreCase("unknow")) {
+                        if(!studentID.equalsIgnoreCase("unknown")) {
                             showStudentInfo(studentID);
                             writeHistory();
                         }
@@ -1860,8 +1777,6 @@ public class MenuFormAdmin extends javax.swing.JFrame {
     
     private void showAdminInfo(FDA_Canbo admin){
         FDA_Canbo cb = null;
-        //String image_url=c.getimage(i);
-//        cb = sinhVienRepository.getCanBo(i);
         cb = admin;
         jTextField1.setText(cb.getTencb());
         jTextField2.setText(cb.getNgaysinh().toString());
@@ -1874,17 +1789,22 @@ public class MenuFormAdmin extends javax.swing.JFrame {
             ImageIcon imageIcon = new ImageIcon("images" + FILE_PATH_SEPARATE + "canbo" + FILE_PATH_SEPARATE + cb.getAvatarPath());
             drawImage.drawImage(imageIcon.getImage());
         }
-        //draw_Image(image_url);
     }
     
     
     private FDA_Sinhvien getNewStudentInfo() throws ParseException {
-        if(!checkStudentInfoFullFill()) {
+        if(!isStudentInfoFullFill()) {
+            return null;
+        }
+        
+        if(!Utilities.isStudentCodeValid(jid.getText())) {
+            showMessage("ERROR", "Mã sinh viên không hợp lệ");
             return null;
         }
         String dob = jngaysinh.getText();
         if(dob.length() == 0) {
             dob = "0001-01-01";
+            jngaysinh.setText(dob);
         }
         
         JTextField[] jTextFields = new JTextField[]{
@@ -1896,9 +1816,10 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         
         for(JTextField textField : jTextFields) {
             if(textField.getText().length() == 0) {
-                textField.setText("Unknow");
+                textField.setText("N");
             }
         }
+        
         
         return new FDA_Sinhvien(
             jid.getText(),
@@ -1909,16 +1830,9 @@ public class MenuFormAdmin extends javax.swing.JFrame {
             jkhoas.getText(),
             jkhoa.getText()
         );
-        
-//        return new FDA_Sinhvien(jid.getText());
     }
     
-    
-    private boolean checkInputStudentIdIsExists(String studentId) {
-        return true;
-    }
-    
-    
+   
     public void updateAttendanceTable(List<FDA_Lichsudiemdanh> attendedStudentList) {
         clearAttendanceTable();
         DefaultTableModel model=(DefaultTableModel) jTable1.getModel();
@@ -1978,7 +1892,8 @@ public class MenuFormAdmin extends javax.swing.JFrame {
         jPanel2.repaint();
     }
     
-    private boolean checkStudentInfoFullFill() {
+    private boolean isStudentInfoFullFill() {
+        
 //        JTextField[] jTextFields = new JTextField[]{
 //            jid,
 //            jname,
@@ -1986,8 +1901,7 @@ public class MenuFormAdmin extends javax.swing.JFrame {
 //            jgioitinh,
 //            jnganh,
 //            jkhoas,
-//            jkhoa};
-        
+//            jkhoa}; 
         JTextField[] jTextFields = new JTextField[]{
             jid,
             jname};
@@ -1996,6 +1910,10 @@ public class MenuFormAdmin extends javax.swing.JFrame {
             if(jTextField.getText().length() == 0) {
                 return false;
             }
+        }
+        if(!Utilities.isStudentCodeValid(jid.getText())) {
+            showMessage("ERROR", "Mã sinh viên không hợp lệ");
+            return false;
         }
         return true;
     }

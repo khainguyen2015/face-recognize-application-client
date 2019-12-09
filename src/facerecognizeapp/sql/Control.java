@@ -6,6 +6,7 @@
 package facerecognizeapp.sql;
 
 import facerecognizeapp.ConnectSQL;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -14,6 +15,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -29,10 +31,16 @@ public class Control {
     
 
     private final Connection conn;
-    public Control() throws SQLException  {
-        ConnectSQL connectSQL = new ConnectSQL(URL
-                                               ,USERNAME
-                                               ,PASSWORD);
+    public Control() throws SQLException  {   
+        Properties prop = new Properties();
+        try (InputStream input = getClass().getClassLoader().getResourceAsStream("resources/database.properties")) {
+            prop.load(input); 
+        } catch(Exception ex) {
+            ex.printStackTrace();
+        }
+        ConnectSQL connectSQL = new ConnectSQL(prop.getProperty("jdbcUrl")
+                                               ,prop.getProperty("username")
+                                               ,prop.getProperty("password"));
         conn = connectSQL.getConnection();
         System.out.println("Ket noi CSDL thanh cong !!!");
     }
